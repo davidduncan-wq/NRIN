@@ -4,7 +4,53 @@
 This document acts as persistent architectural memory for NRIN v1 so that future AI agents (or developers) can immediately understand the philosophical intent, system structure, decision hierarchy, and implementation direction without re-reading prior chats.
 
 ---
+## Operating Rules for Future Agents (Non-Negotiable)
 
+When giving instructions to David, you MUST always specify *where* each action happens:
+
+- **Terminal (macOS zsh):** commands to run (e.g., `npm run dev`, `git`, `ls`, `nano`, `npm install`)
+- **VS Code:** file edits, search/replace, saving files, viewing diffs
+- **Browser → localhost:** verifying UI behavior (e.g., `http://localhost:3000/patient`)
+- **Browser → Supabase Dashboard:** SQL Editor, Table Editor, RLS/policies, API settings
+- **Next.js / App Router:** specify exact file paths under `src/app/...` and whether to “REPLACE ENTIRE FILE” or “EDIT ONLY THESE LINES”
+
+Instruction format required:
+
+1. **Restate the goal in one sentence.**
+2. **MICRO-PLAN (3–6 bullets).**
+3. **Step-by-step actions grouped by location**, with explicit labels:
+   - **Terminal:** exact commands (no comment lines starting with `#` unless clearly explained not to paste)
+   - **VS Code:** exact file path + what to edit + “Cmd+S” to save
+   - **Browser:** exact URL to visit + what success looks like
+   - **Supabase:** exact place to click + SQL to run (if needed)
+4. **Never change frameworks or folder structure** unless David explicitly asks.
+5. Prefer small, incremental edits; avoid large rewrites unless marked **REPLACE ENTIRE FILE**.
+
+### Required Response Template (Copy/Paste)
+
+**Goal:** <one sentence>
+
+**MICRO-PLAN:**
+- ...
+- ...
+- ...
+
+**Terminal:**
+1) ...
+2) ...
+
+**VS Code:**
+1) Open: `...`
+2) Edit: `...`
+3) Save: Cmd+S
+
+**Browser:**
+- Visit: `http://localhost:3000/...`
+- Expect: ...
+
+**Supabase (if needed):**
+- Dashboard → ...
+- Run SQL: ...
 # 1. CORE MISSION (MVP)
 
 NRIN v1 is a **neutral intake and routing clearinghouse** for Substance Use Disorder (SUD) treatment.
