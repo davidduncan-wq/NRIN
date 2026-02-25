@@ -258,6 +258,18 @@ Defaults may be auto-populated for bulk-loaded/unclaimed TCs (e.g., hospital det
 **UI/Matching disclaimer (always-on):** Capacity/bed availability is self-reported by treatment centers and may be unverified or outdated. Unclaimed/default profiles must be clearly labeled (e.g., "Capacity not yet confirmed").
 
 ---
+# 7. KEY FILES
+
+These are the core files that define NRIN v1. Any AI continuing work must reference and preserve these files unless explicitly instructed otherwise.
+
+- **src/app/patient/page.tsx**  
+  Intake wizard (multi-step form, helpers, formatting, UI/UX)
+
+- **src/app/api/match/route.ts**  
+  Deterministic scoring engine (withdrawal, relapse, co-occurring, support)
+
+- **src/lib/supabaseClient.ts**  
+  Supabase client configuration (future user login, org-level multi-tenancy)
 
 # 8. HORSE TRADING LEDGER (FUTURE – NOT MVP)
 
@@ -351,6 +363,103 @@ NRIN becomes:
 * Neutral clearinghouse between orgs and TCs
 
 Clinical safety > Preference > Insurance > Geography > Capacity.
-
+- Structure mirrors best practices from modern onboarding flows (Stripe, Airbnb, telehealth intake)
 This document should be updated only when structural decisions change.
+## 2026-02-24 – Step 1 Intake UX Decisions
 
+- Replaced the native `<input type="date">` widget with a plain text DOB field using:
+  - Live MM/DD/YYYY formatting on input
+  - Normalization to ISO (YYYY-MM-DD) in `handleSubmit` via `dobToISO`
+  - Front-end validation that blocks submit on invalid DOB format
+- Introduced a card-style layout for Step 1:
+  - Section heading: “Basic information” with calming helper text
+  - Two-column grid on desktop, single column on mobile
+  - Clear label + helper text for DOB and phone to reduce anxiety and ambiguity
+- Phone number:
+  - Uses `formatPhoneInput` for live `(###) ###-####` formatting as the user types
+  - Keeps the underlying value in a normalized, consistent format for the backend
+- Location:
+  - Added “Where are you now?” (`currentLocation`) as free text (city, state or ZIP)
+  - This field is included in the payload to `/api/match` for future distance and travel-preference logic
+- UX philosophy for Step 1:
+  - Prioritize human, non-clinical language over medical jargon
+  - Reduce friction: no pop-up calendar, minimal required typing, clear examples
+  - Structure mirrors best practices from modern onboarding flows (Stripe, Airbnb, telehealth intake)
+
+NRIN v1 — UI/UX CANON (Design Doctrine)
+
+### Canonical Override Notice
+The following UI/UX Canon supersedes all prior UI, visual, stylistic, or UX-related instructions in this file. If any earlier instructions conflict with the principles below, this section takes precedence.
+
+Purpose: Ensure all future development follows a consistent, modern, clinical-appropriate design standard aligned with Stripe, Airbnb, BetterHelp, Oscar Health, and Apple Health onboarding flows.
+This canon governs how all patient-facing UI must look, feel, and behave.
+
+
+1. Single-Column, Card-Style Layout
+All steps must be centered inside a maximum-width container (max-w-xl mx-auto).
+Each step is visually isolated inside a “card” with spacing and padding.
+Avoid multi-column forms.
+Mobile-first spacing rules apply everywhere.
+2. Clear Hierarchy & Readability
+Step titles always follow consistent typographic hierarchy:
+Page title → h1
+Step title → h2
+Field labels → medium weight, 14–16px
+Absolutely no placeholder-only fields (placeholders are not labels).
+Layout must always resemble Stripe’s onboarding clarity.
+3. Predictable Navigation
+“Back” button always left-aligned.
+“Continue” button always right-aligned.
+Buttons share:
+identical padding
+identical radius
+identical hover behavior
+No CTA surprises; behavior must always be consistent.
+4. Minimal Motion (Telehealth-Appropriate)
+Use only subtle transitions (fade or slide ≤180ms).
+No distracting animations.
+Accessibility and patient comfort take priority.
+5. Input Normalization at Point of Entry
+All fields must be clean before entering state:
+Phone → (XXX) XXX-XXXX
+DOB → MM/DD/YYYY → normalized to ISO
+Addresses → standardized strings
+Zip → 5-digit validation
+Prevents downstream scoring or DB contamination.
+6. Error Handling
+Inline, never modal.
+Small red text beneath field.
+Red border on error input.
+Error disappears automatically when user resumes typing.
+Must match Airbnb/Stripe-style friendliness.
+7. Cognitive Load Minimization
+No more than 2–3 logically related questions per step.
+Conditional fields remain hidden until triggered.
+Single purpose per screen.
+Mirrors modern medical intake best practices.
+8. Accessibility Requirements
+Labels must use htmlFor.
+Inputs must have associated labels.
+Sufficient color contrast (≥AA).
+Logical tab order.
+Touch targets min 44×44px.
+9. Tone & Copy Philosophy
+Calm, supportive, direct.
+No jargon.
+No coercive language.
+Language should resemble:
+telehealth onboarding
+digital mental health intake
+trauma-informed UX
+10. Mobile-First Execution
+Must render comfortably on iPhone Safari.
+Large click targets.
+Generous vertical spacing.
+Thumb-friendly field placement.
+Zero horizontal scroll allowed.
+Enforcement
+Any future AI modifying UI must:
+Consult this canon before adjusting design.
+Match the visual language established in Step 1.
+Ensure consistency across all new steps and fields.
+Avoid introducing styles or patterns outside this doctrine.
