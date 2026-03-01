@@ -1,13 +1,17 @@
-'use client';
+// NRIN/src/app/patient/page.tsx
+"use client";
 
-import { useState } from 'react';
-import { inputBase } from "@/components/ui/InputBase";
+import { useState } from "react";
+
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { DateInput } from "@/components/ui/DateInput";
 import FieldCheck from "@/components/ui/FieldCheck";
 import ChoiceButton from "@/components/ui/ChoiceButton";
-import CheckIcon from "@/components/ui/CheckIcon";
 
 function formatPhoneInput(input: string): string {
-  const digits = input.replace(/\D/g, '').slice(0, 10);
+  const digits = input.replace(/\D/g, "").slice(0, 10);
 
   if (digits.length <= 3) return digits;
   if (digits.length <= 6) {
@@ -18,7 +22,7 @@ function formatPhoneInput(input: string): string {
 }
 
 function formatDobMMDDYYYY(input: string): string {
-  const digits = input.replace(/\D/g, '').slice(0, 8);
+  const digits = input.replace(/\D/g, "").slice(0, 8);
 
   if (digits.length <= 2) return digits;
   if (digits.length <= 4) {
@@ -29,1293 +33,1300 @@ function formatDobMMDDYYYY(input: string): string {
 }
 
 function dobToISO(dob: string): string | null {
-    const match = dob.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (!match) return null;
+  const match = dob.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
 
-    const [, mm, dd, yyyy] = match;
-    const month = Number(mm);
-    const day = Number(dd);
-    const year = Number(yyyy);
+  const [, mm, dd, yyyy] = match;
+  const month = Number(mm);
+  const day = Number(dd);
+  const year = Number(yyyy);
 
-    if (month < 1 || month > 12) return null;
-    if (day < 1 || day > 31) return null;
-    if (year < 1900 || year > 2100) return null;
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  if (year < 1900 || year > 2100) return null;
 
-    return `${yyyy}-${mm}-${dd}`;
+  // Basic validation only; not checking month/day combo (e.g., Feb 30).
+  return `${yyyy}-${mm}-${dd}`;
 }
-type Step = 1 | 2 | 3 | 4 | 5;
+
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 type Recommendation = {
-    withdrawalRisk: string;
-    relapseRisk: string;
-    coOccurring: string;
-    supportLevel: string;
-    recommendedLevelOfCare: string;
+  withdrawalRisk: string;
+  relapseRisk: string;
+  coOccurring: string;
+  supportLevel: string;
+  recommendedLevelOfCare: string;
 };
 
-function computeAgeYears(isoDate: string | undefined): number | null {
-    if (!isoDate) return null;
+function computeAgeYears(isoDate: string | undefined | null): number | null {
+  if (!isoDate) return null;
 
-    const dob = new Date(isoDate);
-    if (isNaN(dob.getTime())) return null;
+  const dob = new Date(isoDate);
+  if (isNaN(dob.getTime())) return null;
 
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
 
-    const hasHadBirthdayThisYear =
-        today.getMonth() > dob.getMonth() ||
-        (today.getMonth() === dob.getMonth() &&
-            today.getDate() >= dob.getDate());
+  const hasHadBirthdayThisYear =
+    today.getMonth() > dob.getMonth() ||
+    (today.getMonth() === dob.getMonth() &&
+      today.getDate() >= dob.getDate());
 
-    if (!hasHadBirthdayThisYear) age--;
+  if (!hasHadBirthdayThisYear) age--;
 
-    if (age < 0 || age > 120) return null;
+  if (age < 0 || age > 120) return null;
 
-    return age;
+  return age;
 }
 
 type FormState = {
-    firstName: string;
-    lastName: string;
-    phone: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  dob: string; // MM/DD/YYYY
+  dobISO: string; // YYYY-MM-DD
+  sexAtBirth: string;
+  genderIdentity: string;
 
-    dob: string; // MM/DD/YYYY
-    dobISO: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
 
-    sexAtBirth: string;
-    genderIdentity: string;
+  currentLocation: string; // "Where are you now?"
+  sleptLastNight: string;
+  isCurrentlyHomeless: string;
+  lastKnownAddress: string;
+  hasAddressYouCanUse: string;
+  mailingAddress: string;
 
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
+  substances: string[];
+  lastUse: string;
+  frequency: string;
+  severeWithdrawalHistory: string;
 
-    currentLocation: string; // "Where are you now?"
+  priorTreatment: string;
+  treatmentLastWhen: string;
+  treatmentLastDuration: string;
+  treatmentPHPCompleted: string;
+  treatmentIOPCompleted: string;
+  treatmentLastYear: string;
+  treatmentFacility: string;
 
-    sleptLastNight: string;
-    isCurrentlyHomeless: string;
-    lastKnownAddress: string;
-    hasAddressYouCanUse: string;
-    mailingAddress: string;
+  relapseTiming: string;
+  mhMeds: string;
+  mhHospitalization: string;
+  supportivePerson: string;
 
-    substances: string[];
-
-    lastUse: string;
-    frequency: string;
-    severeWithdrawalHistory: string;
-    priorTreatment: string;
-    relapseTiming: string;
-    mHmeds: string;
-    mhHospitalization: string;
-    supportivePerson: string;
-
-    // Review / confirmation
-    initials: string;
+  initials: string;
 };
+
+const initialFormState: FormState = {
+  firstName: "",
+  lastName: "",
+  phone: "",
+  dob: "",
+  dobISO: "",
+  sexAtBirth: "",
+  genderIdentity: "",
+
+  address: "",
+  city: "",
+  state: "",
+  zip: "",
+
+  currentLocation: "",
+  sleptLastNight: "",
+  isCurrentlyHomeless: "",
+  lastKnownAddress: "",
+  hasAddressYouCanUse: "",
+  mailingAddress: "",
+
+  substances: [],
+  lastUse: "",
+  frequency: "",
+  severeWithdrawalHistory: "",
+
+  priorTreatment: "",
+  treatmentLastWhen: "",
+  treatmentLastDuration: "",
+  treatmentPHPCompleted: "",
+  treatmentIOPCompleted: "",
+  treatmentLastYear: "",
+  treatmentFacility: "",
+
+  relapseTiming: "",
+  mhMeds: "",
+  mhHospitalization: "",
+  supportivePerson: "",
+
+  initials: "",
+};
+
 export default function PatientIntakePage() {
-    const [step, setStep] = useState<Step>(1);
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<Recommendation | null>(null);
-    const [genderIdentity, setGenderIdentity] = useState<
-        '' | 'woman' | 'man' | 'nonbinary' | 'another' | 'prefer_not_to_say'
-    >('');
-    const [genderIdentityOther, setGenderIdentityOther] = useState('');
+  const [step, setStep] = useState<Step>(1);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<Recommendation | null>(null);
+  const [form, setForm] = useState<FormState>(initialFormState);
 
-    const [sexAtBirth, setSexAtBirth] = useState<
-        '' | 'female' | 'male' | 'intersex' | 'prefer_not_to_say'
-    >('');
+  const ageYears = computeAgeYears(form.dobISO);
 
-    const [form, setForm] = useState<FormState>({
-        firstName: '',
-        lastName: '',
-        phone: '',
+  const isDemographicsStepComplete =
+    !!form.firstName && !!form.lastName && !!form.dob;
 
-        dob: '',
-        dobISO: '',
+  const isIdentityStepComplete =
+    !!form.address && !!form.city && !!form.state && !!form.zip;
 
-        sexAtBirth: '',
-        genderIdentity: '',
+  const isHousingStepComplete =
+    !!form.currentLocation.trim() &&
+    !!form.sleptLastNight &&
+    !!form.isCurrentlyHomeless;
 
-        address: '',
-        city: '',
-        state: '',
-        zip: '',
+  const isSubstanceStepComplete =
+    form.substances.length > 0 && !!form.lastUse && !!form.frequency;
 
-        currentLocation: '',
-
-        sleptLastNight: '',
-        isCurrentlyHomeless: '',
-        lastKnownAddress: '',
-        hasAddressYouCanUse: '',
-        mailingAddress: '',
-
-        substances: [] as string[],
-
-        lastUse: '',
-        frequency: '',
-        severeWithdrawalHistory: '',
-
-        // Treatment history
-        priorTreatment: '',          // "yes" | "no"
-        treatmentLastWhen: '',       // "0-12 months" | "1-5 years" | "5+ years"
-        treatmentLastDuration: '',   // "0-7 days" | "7-30 days" | "30+ days"
-        treatmentPHPCompleted: '',   // "yes" | "no"
-        treatmentIOPCompleted: '',   // "yes" | "no"
-        treatmentLastYear: '',       // "YYYY"
-        treatmentFacility: '',       // free-text
-
-        relapseTiming: '',
-        mHmeds: '',
-        mhHospitalization: '',
-        supportivePerson: '',
-
-        // Review / confirmation
-        initials: '',
+  function toggleSubstance(value: string) {
+    setForm((prev) => {
+      const exists = prev.substances.includes(value);
+      return {
+        ...prev,
+        substances: exists
+          ? prev.substances.filter((s) => s !== value)
+          : [...prev.substances, value],
+      };
     });
-    const isDemographicsStepComplete =
-        !!form.firstName &&
-        !!form.lastName &&
-        !!form.dob;
-    const isIdentityStepComplete =
-        !!form.address &&
-        !!form.city &&
-        !!form.state &&
-        !!form.zip;
+  }
 
-    const isSubstanceStepComplete =
-        form.substances.length > 0 &&
-        !!form.lastUse &&
-        !!form.frequency;
+  async function handleSubmit() {
+    setLoading(true);
 
-    const isHousingStepComplete =
-        !!(form.currentLocation || '').trim() &&
-        !!form.sleptLastNight &&
-        !!form.isCurrentlyHomeless;
-
-
-
-    const ageYears = computeAgeYears(form.dobISO);
-    function toggleSubstance(value: string) {
-        setForm(prev => {
-            const exists = prev.substances.includes(value);
-            return {
-                ...prev,
-                substances: exists
-                    ? prev.substances.filter(s => s !== value)
-                    : [...prev.substances, value],
-            };
-        });
+    const isoDob = dobToISO(form.dob);
+    if (!isoDob) {
+      alert("Please enter DOB in MM/DD/YYYY format");
+      setLoading(false);
+      return;
     }
 
-    async function handleSubmit() {
-        setLoading(true);
+    try {
+      const res = await fetch("/api/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dob: isoDob,
+          currentLocation: form.currentLocation,
+          substances: form.substances,
+          lastUse: form.lastUse,
+          frequency: form.frequency,
+          dailyAlcoholOrBenzo: "unknown",
+          severeWithdrawalHistory: form.severeWithdrawalHistory,
+          withdrawalSymptomsNow: "unknown",
+          priorTreatment: form.priorTreatment,
+          relapseTiming: form.relapseTiming,
+          mhMeds: form.mhMeds,
+          mhHospitalization: form.mhHospitalization,
+          supportivePerson: form.supportivePerson,
+          housingStable:
+            form.isCurrentlyHomeless === "yes"
+              ? "no"
+              : form.isCurrentlyHomeless === "no"
+                ? "yes"
+                : "unknown",
+        }),
+      });
 
-        const isoDob = dobToISO(form.dob);
-        if (!isoDob) {
-            alert('Please enter DOB in MM/DD/YYYY format');
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/match', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    dob: isoDob,
-                    currentLocation: form.currentLocation,
-
-                    substances: form.substances,
-                    lastUse: form.lastUse,
-                    frequency: form.frequency,
-                    dailyAlcoholOrBenzo: 'unknown',
-                    severeWithdrawalHistory: form.severeWithdrawalHistory,
-                    withdrawalSymptomsNow: 'unknown',
-                    priorTreatment: form.priorTreatment,
-                    relapseTiming: form.relapseTiming,
-                    mhMeds: form.mhMeds,
-                    mhHospitalization: form.mhHospitalization,
-                    supportivePerson: form.supportivePerson,
-                    housingStable:
-                        form.isCurrentlyHomeless === 'yes'
-                            ? 'no'
-                            : form.isCurrentlyHomeless === 'no'
-                                ? 'yes'
-                                : 'unknown',
-                }),
-            });
-
-            const data = await res.json();
-            setResult(data);
-            setStep(6);
-        } catch {
-            alert('Something went wrong.');
-        } finally {
-            setLoading(false);
-        }
+      const data = (await res.json()) as Recommendation;
+      setResult(data);
+      setStep(6);
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong.");
+    } finally {
+      setLoading(false);
     }
+  }
 
-    return (
-        <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
-            {step === 1 && (
-                <section className="max-w-3xl mx-auto bg-white shadow-sm rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
-                    <header className="space-y-1">
-                        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                            Basic information
-                            {isDemographicsStepComplete && (
-                                <span className="text-green-600" aria-hidden="true">
-                                    <CheckIcon className="h-5 w-5" />
-                                </span>
-                            )}
-                        </h2>
+  const stepsMeta: { id: Step; label: string; complete: boolean }[] = [
+    { id: 1, label: "Basic information", complete: isDemographicsStepComplete },
+    { id: 2, label: "Identity & address", complete: isIdentityStepComplete },
+    { id: 3, label: "Housing", complete: isHousingStepComplete },
+    { id: 4, label: "Substances & treatment", complete: isSubstanceStepComplete },
+    { id: 5, label: "Review & confirm", complete: step === 6 || !!form.initials },
+    { id: 6, label: "Recommendation", complete: !!result },
+  ];
 
-                        {form.firstName && ageYears !== null && (
-                            <p className="mt-1 text-sm text-gray-600">
-                                {form.firstName} · Age {ageYears}
-                            </p>
-                        )}
-
-                        <p className="text-sm text-gray-500">
-                            Tell us a little about yourself...
-                        </p>
-                        <p className="text-sm text-gray-500">
-                            Tell us a little about yourself so we can match you to the right level of care.
-                        </p>
-                    </header>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                First name
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    className={`${inputBase} pr-12`}
-                                    value={form.firstName || ''}
-                                    onChange={(e) =>
-                                        setForm((prev) => ({ ...prev, firstName: e.target.value }))
-                                    }
-                                />
-                                <FieldCheck ok={!!form.firstName.trim()} />
-                            </div>
-                        </div>
-
-                        <div className="relative">
-                            <input
-                                type="text"
-                                className={`${inputBase} pr-12`}
-                                value={form.lastName || ''}
-                                onChange={(e) =>
-                                    setForm((prev) => ({ ...prev, lastName: e.target.value }))
-                                }
-                            />
-                            <FieldCheck ok={!!form.lastName.trim()} />
-                        </div>
-
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="MM/DD/YYYY"
-                                className={`${inputBase} pr-12`}
-                                value={form.dob || ''}
-                                onChange={(e) =>
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        dob: formatDobMMDDYYYY(e.target.value),
-                                    }))
-                                }
-                            />
-                            <FieldCheck ok={/^\d{2}\/\d{2}\/\d{4}$/.test(form.dob || '')} />
-                        </div>
-
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="(555) 555-5555"
-                                className={`${inputBase} pr-12`}
-                                value={form.phone || ''}
-                                onChange={(e) =>
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        phone: formatPhoneInput(e.target.value),
-                                    }))
-                                }
-                            />
-                            <FieldCheck ok={(form.phone || '').replace(/\D/g, '').length >= 10} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Where are you now?
-                            </label>
-
-                            {!!(form.currentLocation || '').trim() && (
-                                <span className="text-green-600" aria-hidden="true">
-                                    <CheckIcon className="h-5 w-5" />
-                                </span>
-                            )}
-                        </div>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="City, State or ZIP"
-                                className={`${inputBase} pr-12`}
-                                value={form.currentLocation || ''}
-                                onChange={(e) =>
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        currentLocation: e.target.value,
-                                    }))
-                                }
-                            />
-                            <FieldCheck ok={!!(form.currentLocation || '').trim()} />
-                        </div>
+  return (
+    <div className="min-h-screen bg-gray-50 py-10">
+      <div className="mx-auto flex max-w-6xl gap-10 px-4">
+        {/* Sidebar progress */}
+        <aside className="w-64 space-y-4">
+          <h2 className="text-sm font-semibold text-gray-900">
+            Intake progress
+          </h2>
+          <ol className="space-y-2 text-sm">
+            {stepsMeta.map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => setStep(s.id)}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition ${
+                    step === s.id
+                      ? "bg-white shadow-sm ring-1 ring-gray-200"
+                      : "text-gray-600 hover:bg-white/60"
+                  }`}
+                >
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                      Step {s.id}
                     </div>
-                    <div className="mt-6 flex justify-end">
-                        <button
-                            type="button"
-                            onClick={() => setStep(2)}
-                            className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold bg-black text-white shadow-sm hover:bg-gray-900 transition active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed">
-                            Continue
-                        </button>
+                    <div className="text-sm font-medium text-gray-900">
+                      {s.label}
                     </div>
-                </section>
-            )}
-            {step === 2 && (
-                <div className="max-w-xl mx-auto">
-                    <div className="bg-white rounded-xl shadow-sm p-6">
+                  </div>
+                  <FieldCheck ok={s.complete} />
+                </button>
+              </li>
+            ))}
+          </ol>
+        </aside>
 
-                        <h2 className="text-xl font-semibold flex items-center gap-2">
-                            Identity & Address
-                            {isIdentityStepComplete && (
-                                <span className="text-green-600" aria-hidden="true">
-                                    <CheckIcon className="h-5 w-5" />
-                                </span>
-                            )}
-                        </h2>
-
-                        {/* Address */}
-                        <div className="mt-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-900">
-                                    Home / Primary Address
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        className={`${inputBase} pr-12`}
-                                        value={form.address || ''}
-                                        onChange={(e) => setForm({ ...form, address: e.target.value })}
-                                    />
-                                    <FieldCheck ok={!!form.address.trim()} />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div className="relative">
-                                    <input
-                                        placeholder="City"
-                                        className="w-full rounded-md border border-gray-200 p-3 pr-10"
-                                        value={form.city || ''}
-                                        onChange={(e) => setForm({ ...form, city: e.target.value })}
-                                    />
-                                    <FieldCheck ok={!!form.city.trim()} />
-                                </div>
-
-                                <div className="relative">
-                                    <input
-                                        placeholder="State"
-                                        className="w-full rounded-md border border-gray-200 p-3 pr-10"
-                                        value={form.state || ''}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                state: e.target.value.toUpperCase().slice(0, 2),
-                                            })
-                                        }
-                                    />
-                                    <FieldCheck ok={!!form.state.trim() && form.state.trim().length === 2} />
-                                </div>
-
-                                <div className="relative">
-                                    <input
-                                        placeholder="ZIP"
-                                        inputMode="numeric"
-                                        className="w-full rounded-md border border-gray-200 p-3 pr-10"
-                                        value={form.zip || ''}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                zip: e.target.value.replace(/\D/g, '').slice(0, 5),
-                                            })
-                                        }
-                                    />
-                                    <FieldCheck ok={!!form.zip.trim() && form.zip.trim().length === 5} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Sex Assigned at Birth */}
-                        <div className="mt-8">
-                            <div className="flex items-center gap-2">
-                                <label className="block text-sm font-medium text-gray-900">
-                                    What sex were you assigned at birth (on your original birth certificate)?
-                                </label>
-
-                                {form.sexAtBirth && (
-                                    <span className="text-green-600" aria-hidden="true">
-                                        <CheckIcon className="h-5 w-5" />
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {['male', 'female', 'intersex', 'prefer_not_to_say'].map((v) => (
-                                    <button
-                                        key={v}
-                                        type="button"
-                                        className={`w-full rounded-md border p-3 text-left ${form.sexAtBirth === v ? 'border-gray-900' : 'border-gray-200'
-                                            }`}
-                                        onClick={() =>
-                                            setForm({ ...form, sexAtBirth: v })
-                                        }
-                                    >
-                                        {v.replace('_', ' ')}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Gender Identity */}
-                        <div className="mt-8">
-                            <div className="flex items-center gap-2">
-                                <label className="block text-sm font-medium text-gray-900">
-                                    Gender identity
-                                </label>
-
-                                {form.genderIdentity && (
-                                    <span className="text-green-600" aria-hidden="true">
-                                        <CheckIcon className="h-5 w-5" />
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {['man', 'woman', 'nonbinary', 'another', 'prefer_not_to_say'].map((v) => (
-                                    <button
-                                        key={v}
-                                        type="button"
-                                        className={`w-full rounded-md border p-3 text-left ${form.genderIdentity === v ? 'border-gray-900' : 'border-gray-200'
-                                            }`}
-                                        onClick={() =>
-                                            setForm({ ...form, genderIdentity: v })
-                                        }
-                                    >
-                                        {v.replace('_', ' ')}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="mt-8 flex items-center justify-between">
-                            <button
-                                type="button"
-                                className="rounded-md border border-gray-200 px-4 py-2"
-                                onClick={() => setStep(1)}
-                            >
-                                Back
-                            </button>
-
-                            <button
-                                type="button"
-                                className="rounded-md bg-gray-900 text-white px-4 py-2"
-                                onClick={() => setStep(3)}
-                            >
-                                Continue
-                            </button>
-                        </div>
-
-                    </div>
+        {/* Main content */}
+        <main className="flex-1 rounded-2xl bg-white p-6 shadow-sm">
+          {/* STEP 1 – DEMOGRAPHICS */}
+          {step === 1 && (
+            <section className="space-y-6">
+              <header className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Basic information
+                  </h1>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Tell us a little about yourself so we can match you to the
+                    right level of care.
+                  </p>
                 </div>
-            )}
-            {step === 3 && (
-                <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                        Housing information
-                        {isHousingStepComplete && (
-                            <span className="text-green-600" aria-hidden="true">
-                                <CheckIcon className="h-5 w-5" />
-                            </span>
-                        )}
-                    </h2>
+                {isDemographicsStepComplete && <FieldCheck ok={true} />}
+              </header>
 
+              {form.firstName && ageYears !== null && (
+                <div className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-900">
+                  {form.firstName} · Age {ageYears}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    First name
+                  </label>
+                  <Input
+                    value={form.firstName}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        firstName: e.target.value,
+                      }))
+                    }
+                    autoComplete="given-name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Last name
+                  </label>
+                  <Input
+                    value={form.lastName}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        lastName: e.target.value,
+                      }))
+                    }
+                    autoComplete="family-name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Date of birth
+                  </label>
+                  <DateInput
+                    value={form.dob}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const formatted = formatDobMMDDYYYY(raw);
+                      const iso = dobToISO(formatted);
+
+                      setForm((prev) => ({
+                        ...prev,
+                        dob: formatted,
+                        dobISO: iso ?? "",
+                      }));
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Mobile phone
+                  </label>
+                  <PhoneInput
+                    value={form.phone}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        phone: formatPhoneInput(e.target.value),
+                      }))
+                    }
+                    maxLength={14} // (XXX) YYY-ZZZZ
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
+                  Where are you now?
+                </label>
+                <Input
+                  value={form.currentLocation}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      currentLocation: e.target.value,
+                    }))
+                  }
+                  placeholder="City / facility / general location"
+                />
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  disabled={!isDemographicsStepComplete}
+                  className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Continue
+                </button>
+              </div>
+            </section>
+          )}
+
+          {/* STEP 2 – IDENTITY & ADDRESS */}
+          {step === 2 && (
+            <section className="space-y-6">
+              <header className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Identity & address
+                  </h1>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Where can we reach you and how do you describe yourself?
+                  </p>
+                </div>
+                <FieldCheck ok={isIdentityStepComplete} />
+              </header>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Home / primary address
+                  </label>
+                  <Input
+                    value={form.address}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, address: e.target.value }))
+                    }
+                    autoComplete="street-address"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="md:col-span-1">
                     <label className="block text-sm font-medium text-gray-900">
-                        Where did you sleep last night?
+                      City
                     </label>
+                    <Input
+                      value={form.city}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, city: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900">
+                      State
+                    </label>
+                    <Input
+                      value={form.state}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          state: e.target.value.toUpperCase().slice(0, 2),
+                        }))
+                      }
+                      maxLength={2}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900">
+                      ZIP
+                    </label>
+                    <Input
+                      value={form.zip}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          zip: e.target.value.replace(/\D/g, "").slice(0, 5),
+                        }))
+                      }
+                      maxLength={5}
+                    />
+                  </div>
+                </div>
+              </div>
 
-                    <div className="relative mt-2">
-                        <select
-                            className={`${inputBase} pr-12`}
-                            value={form.sleptLastNight || ''}
-                            onChange={(e) =>
-                                setForm((prev) => ({ ...prev, sleptLastNight: e.target.value }))
-                            }
-                        >
-                            <option value="">Select one</option>
-                            <option value="shelter">Shelter</option>
-                            <option value="street_encampment">Street / encampment</option>
-                            <option value="park">Park</option>
-                            <option value="car">Car / vehicle</option>
-                            <option value="friend_family">Friend / family</option>
-                            <option value="hospital">Hospital / ER</option>
-                            <option value="jail">Jail / detention</option>
-                            <option value="hotel">Hotel / motel</option>
-                            <option value="treatment">Treatment facility</option>
-                            <option value="other">Other</option>
-                            <option value="decline">Decline to answer</option>
-                        </select>
+              {/* Sex assigned at birth */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-900">
+                    Sex assigned at birth
+                  </label>
+                  <FieldCheck ok={!!form.sexAtBirth} />
+                </div>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {["male", "female", "intersex", "prefer_not_to_say"].map(
+                    (v) => (
+                      <ChoiceButton
+                        key={v}
+                        isSelected={form.sexAtBirth === v}
+                        onClick={() =>
+                          setForm((prev) => ({ ...prev, sexAtBirth: v }))
+                        }
+                      >
+                        {v.replace("_", " ")}
+                      </ChoiceButton>
+                    )
+                  )}
+                </div>
+              </div>
 
-                        <FieldCheck ok={!!form.sleptLastNight?.trim()} />
+              {/* Gender identity */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-900">
+                    Gender identity
+                  </label>
+                  <FieldCheck ok={!!form.genderIdentity} />
+                </div>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {["man", "woman", "nonbinary", "another", "prefer_not_to_say"].map(
+                    (v) => (
+                      <ChoiceButton
+                        key={v}
+                        isSelected={form.genderIdentity === v}
+                        onClick={() =>
+                          setForm((prev) => ({ ...prev, genderIdentity: v }))
+                        }
+                      >
+                        {v.replace("_", " ")}
+                      </ChoiceButton>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="inline-flex items-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="inline-flex items-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-900"
+                >
+                  Continue
+                </button>
+              </div>
+            </section>
+          )}
+
+          {/* STEP 3 – HOUSING */}
+          {step === 3 && (
+            <section className="space-y-6">
+              <header className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Housing information
+                  </h1>
+                  <p className="mt-1 text-sm text-gray-600">
+                    A few quick questions about where you’re staying.
+                  </p>
+                </div>
+                <FieldCheck ok={isHousingStepComplete} />
+              </header>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Where did you sleep last night?
+                  </label>
+                  <Select
+                    value={form.sleptLastNight}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        sleptLastNight: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Select one</option>
+                    <option value="shelter">Shelter</option>
+                    <option value="street">Street / encampment</option>
+                    <option value="park">Park</option>
+                    <option value="vehicle">Car / vehicle</option>
+                    <option value="friend_family">Friend / family</option>
+                    <option value="hospital">Hospital / ER</option>
+                    <option value="jail">Jail / detention</option>
+                    <option value="hotel">Hotel / motel</option>
+                    <option value="treatment">Treatment facility</option>
+                    <option value="other">Other</option>
+                    <option value="decline">Decline to answer</option>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="block text-sm font-medium text-gray-900">
+                    Are you currently homeless?
+                  </span>
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <ChoiceButton
+                      isSelected={form.isCurrentlyHomeless === "yes"}
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          isCurrentlyHomeless: "yes",
+                        }))
+                      }
+                    >
+                      Yes
+                    </ChoiceButton>
+                    <ChoiceButton
+                      isSelected={form.isCurrentlyHomeless === "no"}
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          isCurrentlyHomeless: "no",
+                          lastKnownAddress: "",
+                          hasAddressYouCanUse: "",
+                          mailingAddress: "",
+                        }))
+                      }
+                    >
+                      No
+                    </ChoiceButton>
+                  </div>
+                </div>
+
+                {form.isCurrentlyHomeless === "yes" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900">
+                        Last known address
+                      </label>
+                      <Input
+                        value={form.lastKnownAddress}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            lastKnownAddress: e.target.value,
+                          }))
+                        }
+                      />
                     </div>
 
-                    <label className="block font-medium">Are you currently homeless?</label>
-                    <div className="grid grid-cols-2 gap-2 max-w-xs">
+                    <div className="space-y-2">
+                      <span className="block text-sm font-medium text-gray-900">
+                        Do you have an address you can use?
+                      </span>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                         <ChoiceButton
-                            isSelected={form.isCurrentlyHomeless === 'yes'}
-                            onClick={() =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    isCurrentlyHomeless: 'yes',
-                                }))
-                            }
+                          isSelected={form.hasAddressYouCanUse === "yes"}
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              hasAddressYouCanUse: "yes",
+                            }))
+                          }
                         >
-                            Yes
+                          Yes
                         </ChoiceButton>
-
                         <ChoiceButton
-                            isSelected={form.isCurrentlyHomeless === 'no'}
-                            onClick={() =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    isCurrentlyHomeless: 'no',
-                                    lastKnownAddress: '',
-                                    hasAddressYouCanUse: '',
-                                    mailingAddress: '',
-                                }))
-                            }
+                          isSelected={form.hasAddressYouCanUse === "no"}
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              hasAddressYouCanUse: "no",
+                              mailingAddress: "",
+                            }))
+                          }
                         >
-                            No
+                          No
                         </ChoiceButton>
+                      </div>
                     </div>
 
-                    {form.isCurrentlyHomeless === 'yes' && (
-                        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
-                            <div>
-                                <label className="block font-medium">Last known address</label>
-                                <div className="relative">
-                                    <input
-                                        className={`${inputBase} pr-12`}
-                                        placeholder="Street, City, State, ZIP"
-                                        value={form.lastKnownAddress}
-                                        onChange={(e) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                lastKnownAddress: e.target.value,
-                                            }))
-                                        }
-                                    />
-                                    <FieldCheck ok={!!(form.lastKnownAddress || '').trim()} />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block font-medium">Do you have an address you can use?</label>
-                                <div className="grid grid-cols-2 gap-2 max-w-xs">
-                                    <ChoiceButton
-                                        isSelected={form.hasAddressYouCanUse === 'yes'}
-                                        onClick={() => setForm((prev) => ({ ...prev, hasAddressYouCanUse: 'yes' }))}
-                                    >
-                                        Yes
-                                    </ChoiceButton>
-
-                                    <ChoiceButton
-                                        isSelected={form.hasAddressYouCanUse === 'no'}
-                                        onClick={() =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                hasAddressYouCanUse: 'no',
-                                                mailingAddress: '',
-                                            }))
-                                        }
-                                    >
-                                        No
-                                    </ChoiceButton>
-                                </div>
-                            </div>
-
-                            {form.hasAddressYouCanUse === 'yes' && (
-                                <div>
-                                    <label className="block font-medium">Address you can use</label>
-                                    <div className="relative">
-                                        <input
-                                            className={`${inputBase} pr-12`}
-                                            placeholder="Street, City, State, ZIP"
-                                            value={form.mailingAddress}
-                                            onChange={(e) =>
-                                                setForm((prev) => ({
-                                                    ...prev,
-                                                    mailingAddress: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                        <FieldCheck ok={!!(form.mailingAddress || '').trim()} />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                    {form.hasAddressYouCanUse === "yes" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900">
+                          Address you can use
+                        </label>
+                        <Input
+                          value={form.mailingAddress}
+                          onChange={(e) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              mailingAddress: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
                     )}
+                  </div>
+                )}
+              </div>
 
-                    <div className="mt-6 flex justify-between">
-                        <button
-                            type="button"
-                            onClick={() => setStep(2)}
-                            className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300"
-                        >
-                            Back
-                        </button>
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="inline-flex items-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(4)}
+                  className="inline-flex items-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-900"
+                >
+                  Continue
+                </button>
+              </div>
+            </section>
+          )}
 
-                        <button
-                            type="button"
-                            onClick={() => setStep(4)}
-                            className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-black text-white hover:bg-gray-900"
-                        >
-                            Continue
-                        </button>
-                    </div>
+          {/* STEP 4 – SUBSTANCES & TREATMENT */}
+          {step === 4 && (
+            <section className="space-y-6">
+              <header className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Substances & treatment history
+                  </h1>
+                  <p className="mt-1 text-sm text-gray-600">
+                    This helps us understand withdrawal and relapse risk.
+                  </p>
                 </div>
-            )}
-            {step === 4 && (
-                <div className="space-y-4">
-                    <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-                        {isSubstanceStepComplete && (
-                            <span className="text-green-600" aria-hidden="true">
-                                <CheckIcon className="h-5 w-5" />
-                            </span>
-                        )}
-                    </h2>
-                    <label>Select substances used in last 30 days:</label>
+                <FieldCheck ok={isSubstanceStepComplete} />
+              </header>
 
-                    {[
-                        'alcohol',
-                        'opioids',
-                        'benzodiazepines',
-                        'stimulants',
-                        'ketamine',
-                        'kratom',
-                        'hallucinogens',
-                        'inhalants',
-                    ].map(s => (
-                        <label key={s} className="block">
-                            <input
-                                type="checkbox"
-                                checked={form.substances.includes(s)}
-                                onChange={() => toggleSubstance(s)}
-                            />{' '}
-                            {s}
-                        </label>
-                    ))}
-                    <div className="relative">
-                        <select
-                            className={`${inputBase} pr-12`}
-                            value={form.lastUse}
-                            onChange={e => setForm({ ...form, lastUse: e.target.value })}
+              {/* Substances */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-900">
+                  Substances used in the last 30 days
+                </label>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {[
+                    "alcohol",
+                    "opioids",
+                    "benzodiazepines",
+                    "stimulants",
+                    "ketamine",
+                    "kratom",
+                    "hallucinogens",
+                    "inhalants",
+                  ].map((s) => (
+                    <ChoiceButton
+                      key={s}
+                      isSelected={form.substances.includes(s)}
+                      onClick={() => toggleSubstance(s)}
+                    >
+                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                    </ChoiceButton>
+                  ))}
+                </div>
+              </div>
+
+              {/* Last use + frequency */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Last use
+                  </label>
+                  <Select
+                    value={form.lastUse}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, lastUse: e.target.value }))
+                    }
+                  >
+                    <option value="">Select one</option>
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="2-3_days_ago">2–3 days ago</option>
+                    <option value="4-7_days_ago">4–7 days ago</option>
+                    <option value="7+_days_ago">More than a week ago</option>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Frequency
+                  </label>
+                  <Select
+                    value={form.frequency}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        frequency: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Select one</option>
+                    <option value="daily">Daily</option>
+                    <option value="3-5_days_week">3–5 days / week</option>
+                    <option value="1-2_days_week">1–2 days / week</option>
+                    <option value="less_than_weekly">
+                      Less than once a week
+                    </option>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Treatment history (simplified version keeping your fields) */}
+              <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <h2 className="text-sm font-semibold text-gray-900">
+                  Treatment history
+                </h2>
+
+                <div className="space-y-2">
+                  <span className="block text-sm font-medium text-gray-900">
+                    Have you been to treatment before?
+                  </span>
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <ChoiceButton
+                      isSelected={form.priorTreatment === "yes"}
+                      onClick={() =>
+                        setForm((prev) => ({ ...prev, priorTreatment: "yes" }))
+                      }
+                    >
+                      Yes
+                    </ChoiceButton>
+                    <ChoiceButton
+                      isSelected={form.priorTreatment === "no"}
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          priorTreatment: "no",
+                          treatmentLastWhen: "",
+                          treatmentLastDuration: "",
+                          treatmentPHPCompleted: "",
+                          treatmentIOPCompleted: "",
+                          treatmentLastYear: "",
+                          treatmentFacility: "",
+                        }))
+                      }
+                    >
+                      No
+                    </ChoiceButton>
+                  </div>
+                </div>
+
+                {form.priorTreatment === "yes" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900">
+                        When were you last in treatment?
+                      </label>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                        <ChoiceButton
+                          isSelected={form.treatmentLastWhen === "0-12_months"}
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              treatmentLastWhen: "0-12_months",
+                            }))
+                          }
                         >
-                            <option value="">Last use</option>
-                            <option value="today">Today</option>
-                            <option value="yesterday">Yesterday</option>
-                            <option value="2-3">2-3 days ago</option>
-                            <option value="4-7">4-7 days ago</option>
-                        </select>
-                        <FieldCheck ok={!!(form.lastUse || '').trim()} />
+                          0–12 months ago
+                        </ChoiceButton>
+                        <ChoiceButton
+                          isSelected={form.treatmentLastWhen === "1-5_years"}
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              treatmentLastWhen: "1-5_years",
+                            }))
+                          }
+                        >
+                          Over 1 year ago
+                        </ChoiceButton>
+                        <ChoiceButton
+                          isSelected={form.treatmentLastWhen === "5+_years"}
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              treatmentLastWhen: "5+_years",
+                            }))
+                          }
+                        >
+                          5+ years ago
+                        </ChoiceButton>
+                      </div>
                     </div>
 
-                    <div className="relative">
-                        <select
-                            className={`${inputBase} pr-12`}
-                            value={form.frequency}
-                            onChange={e => setForm({ ...form, frequency: e.target.value })}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900">
+                        How long were you in treatment?
+                      </label>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                        <ChoiceButton
+                          isSelected={
+                            form.treatmentLastDuration === "0-7_days"
+                          }
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              treatmentLastDuration: "0-7_days",
+                            }))
+                          }
                         >
-                            <option value="">Frequency</option>
-                            <option value="daily">Daily</option>
-                            <option value="3-5">3-5 days/week</option>
-                            <option value="1-2">1-2 days/week</option>
-                        </select>
-                        <FieldCheck ok={!!(form.frequency || '').trim()} />
+                          0–7 days
+                        </ChoiceButton>
+                        <ChoiceButton
+                          isSelected={
+                            form.treatmentLastDuration === "7-30_days"
+                          }
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              treatmentLastDuration: "7-30_days",
+                            }))
+                          }
+                        >
+                          7–30 days
+                        </ChoiceButton>
+                        <ChoiceButton
+                          isSelected={
+                            form.treatmentLastDuration === "30+_days"
+                          }
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              treatmentLastDuration: "30+_days",
+                            }))
+                          }
+                        >
+                          30+ days
+                        </ChoiceButton>
+                      </div>
                     </div>
-                    {/* Treatment History */}
-                    <div className="mt-4 space-y-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm max-w-2xl mx-auto">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                            Treatment history
-                        </h2>
 
-                        {/* Have you been to treatment before? */}
-                        <div className="space-y-2">
-                            <p className="text-sm font-medium text-gray-800">
-                                Have you been to treatment before?
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                <ChoiceButton
-                                    isSelected={form.priorTreatment === 'yes'}
-                                    onClick={() =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            priorTreatment: 'yes',
-                                        }))
-                                    }
-                                >
-                                    Yes
-                                </ChoiceButton>
-                                <ChoiceButton
-                                    isSelected={form.priorTreatment === 'no'}
-                                    onClick={() =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            priorTreatment: 'no',
-                                            // clear dependent fields if they had values
-                                            treatmentLastWhen: '',
-                                            treatmentLastDuration: '',
-                                            treatmentPHPCompleted: '',
-                                            treatmentIOPCompleted: '',
-                                            treatmentLastYear: '',
-                                            treatmentFacility: '',
-                                        }))
-                                    }
-                                >
-                                    No
-                                </ChoiceButton>
-                            </div>
+                    {form.treatmentLastDuration === "30+_days" && (
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <span className="block text-sm font-medium text-gray-900">
+                            Programs completed
+                          </span>
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                            <ChoiceButton
+                              isSelected={
+                                form.treatmentPHPCompleted === "yes"
+                              }
+                              onClick={() =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  treatmentPHPCompleted: "yes",
+                                }))
+                              }
+                            >
+                              Completed PHP
+                            </ChoiceButton>
+                            <ChoiceButton
+                              isSelected={form.treatmentPHPCompleted === "no"}
+                              onClick={() =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  treatmentPHPCompleted: "no",
+                                }))
+                              }
+                            >
+                              Didn’t complete PHP
+                            </ChoiceButton>
+                            <ChoiceButton
+                              isSelected={
+                                form.treatmentIOPCompleted === "yes"
+                              }
+                              onClick={() =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  treatmentIOPCompleted: "yes",
+                                }))
+                              }
+                            >
+                              Completed IOP
+                            </ChoiceButton>
+                            <ChoiceButton
+                              isSelected={form.treatmentIOPCompleted === "no"}
+                              onClick={() =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  treatmentIOPCompleted: "no",
+                                }))
+                              }
+                            >
+                              Didn’t complete IOP
+                            </ChoiceButton>
+                          </div>
                         </div>
 
-                        {form.priorTreatment === 'yes' && (
-                            <div className="space-y-6">
-                                {/* When were you last in treatment? */}
-                                <div className="space-y-2">
-                                    <p className="text-sm font-medium text-gray-800">
-                                        When were you last in treatment?
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        <ChoiceButton
-                                            isSelected={form.treatmentLastWhen === '0-12 months'}
-                                            onClick={() =>
-                                                setForm(prev => ({ ...prev, treatmentLastWhen: '0-12 months' }))
-                                            }
-                                        >
-                                            0–12 months ago
-                                        </ChoiceButton>
-                                        <ChoiceButton
-                                            isSelected={form.treatmentLastWhen === '1-5 years'}
-                                            onClick={() =>
-                                                setForm(prev => ({ ...prev, treatmentLastWhen: '1-5 years' }))
-                                            }
-                                        >
-                                            Over 1 year ago
-                                        </ChoiceButton>
-                                        <ChoiceButton
-                                            isSelected={form.treatmentLastWhen === '5+ years'}
-                                            onClick={() =>
-                                                setForm(prev => ({ ...prev, treatmentLastWhen: '5+ years' }))
-                                            }
-                                        >
-                                            5 or more years ago
-                                        </ChoiceButton>
-                                    </div>
-                                </div>
-
-                                {/* How long were you in treatment? */}
-                                <div className="space-y-2">
-                                    <p className="text-sm font-medium text-gray-800">
-                                        How long were you in treatment?
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        <ChoiceButton
-                                            isSelected={form.treatmentLastDuration === '0-7 days'}
-                                            onClick={() =>
-                                                setForm(prev => ({ ...prev, treatmentLastDuration: '0-7 days' }))
-                                            }
-                                        >
-                                            0–7 days
-                                        </ChoiceButton>
-                                        <ChoiceButton
-                                            isSelected={form.treatmentLastDuration === '7-30 days'}
-                                            onClick={() =>
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    treatmentLastDuration: '7-30 days',
-                                                }))
-                                            }
-                                        >
-                                            7–30 days
-                                        </ChoiceButton>
-                                        <ChoiceButton
-                                            isSelected={form.treatmentLastDuration === '30+ days'}
-                                            onClick={() =>
-                                                setForm(prev => ({ ...prev, treatmentLastDuration: '30+ days' }))
-                                            }
-                                        >
-                                            30 days or more
-                                        </ChoiceButton>
-                                    </div>
-                                </div>
-
-                                {/* Extra details if 30+ days */}
-                                {form.treatmentLastDuration === '30+ days' && (
-                                    <div className="space-y-4 rounded-lg bg-gray-50 p-4">
-                                        <p className="text-sm font-medium text-gray-800">
-                                            Tell us a bit more about that treatment:
-                                        </p>
-
-                                        {/* PHP / IOP */}
-                                        <div className="space-y-2">
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                Programs completed
-                                            </p>
-                                            <div className="flex flex-wrap gap-2">
-                                                <ChoiceButton
-                                                    isSelected={form.treatmentPHPCompleted === 'yes'}
-                                                    onClick={() =>
-                                                        setForm(prev => ({ ...prev, treatmentPHPCompleted: 'yes' }))
-                                                    }
-                                                >
-                                                    Completed PHP
-                                                </ChoiceButton>
-                                                <ChoiceButton
-                                                    isSelected={form.treatmentPHPCompleted === 'no'}
-                                                    onClick={() =>
-                                                        setForm(prev => ({ ...prev, treatmentPHPCompleted: 'no' }))
-                                                    }
-                                                >
-                                                    Didn’t complete PHP
-                                                </ChoiceButton>
-
-                                                <ChoiceButton
-                                                    isSelected={form.treatmentIOPCompleted === 'yes'}
-                                                    onClick={() =>
-                                                        setForm(prev => ({ ...prev, treatmentIOPCompleted: 'yes' }))
-                                                    }
-                                                >
-                                                    Completed IOP
-                                                </ChoiceButton>
-                                                <ChoiceButton
-                                                    isSelected={form.treatmentIOPCompleted === 'no'}
-                                                    onClick={() =>
-                                                        setForm(prev => ({ ...prev, treatmentIOPCompleted: 'no' }))
-                                                    }
-                                                >
-                                                    Didn’t complete IOP
-                                                </ChoiceButton>
-                                            </div>
-                                        </div>
-
-                                        {/* Year and facility */}
-                                        <div className="grid gap-4 sm:grid-cols-2">
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                    What year was that? (YYYY)
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    maxLength={4}
-                                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                                    placeholder="2020"
-                                                    value={form.treatmentLastYear}
-                                                    onChange={e =>
-                                                        setForm(prev => ({
-                                                            ...prev,
-                                                            treatmentLastYear: e.target.value,
-                                                        }))
-                                                    }
-                                                />
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                    Where was that treatment?
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                                    placeholder="Facility name or city"
-                                                    value={form.treatmentFacility}
-                                                    onChange={e =>
-                                                        setForm(prev => ({
-                                                            ...prev,
-                                                            treatmentFacility: e.target.value,
-                                                        }))
-                                                    }
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    {/* Patient summary / review */}
-                    <div className="mt-6 hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                            Review your answers
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-600">
-                            Please double-check that this looks right before you continue.
-                        </p>
-
-                        <dl className="mt-4 space-y-4 text-sm">
-                            {/* Basic info */}
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                    <dt className="font-medium text-gray-800">Name</dt>
-                                    <dd className="text-gray-700">
-                                        {[form.firstName, form.lastName].filter(Boolean).join(' ') || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Date of birth</dt>
-                                    <dd className="text-gray-700">
-                                        {form.dob || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Phone</dt>
-                                    <dd className="text-gray-700">
-                                        {form.phone || 'Not provided'}
-                                    </dd>
-                                </div>
-                            </div>
-
-                            {/* Housing / location */}
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                    <dt className="font-medium text-gray-800">Current location</dt>
-                                    <dd className="text-gray-700">
-                                        {form.currentLocation || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Where you slept last night</dt>
-                                    <dd className="text-gray-700">
-                                        {form.sleptLastNight || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Currently homeless</dt>
-                                    <dd className="text-gray-700">
-                                        {form.isCurrentlyHomeless || 'Not provided'}
-                                    </dd>
-                                </div>
-                            </div>
-
-                            {/* Substance & treatment snapshot */}
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                    <dt className="font-medium text-gray-800">Substances (last 30 days)</dt>
-                                    <dd className="text-gray-700">
-                                        {form.substances && form.substances.length > 0
-                                            ? form.substances.join(', ')
-                                            : 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Last use</dt>
-                                    <dd className="text-gray-700">
-                                        {form.lastUse || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Frequency</dt>
-                                    <dd className="text-gray-700">
-                                        {form.frequency || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Prior treatment</dt>
-                                    <dd className="text-gray-700">
-                                        {form.priorTreatment === 'yes'
-                                            ? 'Yes'
-                                            : form.priorTreatment === 'no'
-                                                ? 'No'
-                                                : 'Not provided'}
-                                    </dd>
-                                </div>
-                            </div>
-                        </dl>
-
-                        <p className="mt-3 text-xs text-gray-500">
-                            If something doesn’t look right, you can use the Back button to update your answers.
-                        </p>
-                    </div>
-                    <div className="mt-6 flex items-center justify-between">
-                        <button
-                            type="button"
-                            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                            onClick={() => setStep(3)}
-                        >
-                            Back
-                        </button>
-
-                        <button
-                            type="button"
-                            className="rounded-md bg-black text-white px-4 py-2 text-sm font-medium"
-                            onClick={() => setStep(5)}
-                        >
-                            Review &amp; confirm
-                        </button>
-                    </div>
-                </div>
-            )
-            }
-
-            {step === 5 && (
-                <div className="space-y-6">
-                    {/* Summary card */}
-                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm max-w-2xl mx-auto">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                            Review your answers
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-600">
-                            Please double-check that this looks right before you continue.
-                        </p>
-
-                        <dl className="mt-4 space-y-4 text-sm">
-                            {/* Basic info */}
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                    <dt className="font-medium text-gray-800">Name</dt>
-                                    <dd className="text-gray-700">
-                                        {[form.firstName, form.lastName].filter(Boolean).join(' ') || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Date of birth</dt>
-                                    <dd className="text-gray-700">
-                                        {form.dob || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Phone</dt>
-                                    <dd className="text-gray-700">
-                                        {form.phone || 'Not provided'}
-                                    </dd>
-                                </div>
-                            </div>
-
-                            {/* Housing / location */}
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                    <dt className="font-medium text-gray-800">Current location</dt>
-                                    <dd className="text-gray-700">
-                                        {form.currentLocation || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Where you slept last night</dt>
-                                    <dd className="text-gray-700">
-                                        {form.sleptLastNight || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Currently homeless</dt>
-                                    <dd className="text-gray-700">
-                                        {form.isCurrentlyHomeless || 'Not provided'}
-                                    </dd>
-                                </div>
-                            </div>
-
-                            {/* Substance & treatment snapshot */}
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                    <dt className="font-medium text-gray-800">Substances (last 30 days)</dt>
-                                    <dd className="text-gray-700">
-                                        {form.substances && form.substances.length > 0
-                                            ? form.substances.join(', ')
-                                            : 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Last use</dt>
-                                    <dd className="text-gray-700">
-                                        {form.lastUse || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Frequency</dt>
-                                    <dd className="text-gray-700">
-                                        {form.frequency || 'Not provided'}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="font-medium text-gray-800">Prior treatment</dt>
-                                    <dd className="text-gray-700">
-                                        {form.priorTreatment === 'yes'
-                                            ? 'Yes'
-                                            : form.priorTreatment === 'no'
-                                                ? 'No'
-                                                : 'Not provided'}
-                                    </dd>
-                                </div>
-                            </div>
-                        </dl>
-
-                        <p className="mt-3 text-xs text-gray-500">
-                            If something doesn’t look right, you can use the Back button below to go back and update your answers.
-                        </p>
-                    </div>
-
-                    {/* Initials input */}
-                    <div className="max-w-sm mx-auto">
-                        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            Please type your initials to confirm this information is accurate
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                className={`${inputBase} pr-12`}
-                                maxLength={4}
-                                value={form.initials}
-                                onChange={e =>
-                                    setForm(prev => ({ ...prev, initials: e.target.value.toUpperCase() }))
-                                }
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-900">
+                              What year was that? (YYYY)
+                            </label>
+                            <Input
+                              value={form.treatmentLastYear}
+                              onChange={(e) =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  treatmentLastYear: e.target.value,
+                                }))
+                              }
                             />
-                            <FieldCheck ok={!!(form.initials || '').trim()} />
-                        </div>
-                    </div>
-
-                    {/* Back + Get Recommendation */}
-                    <div className="mt-6 flex items-center justify-between max-w-2xl mx-auto">
-                        <button
-                            type="button"
-                            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                            onClick={() => setStep(4)}
-                        >
-                            Back
-                        </button>
-
-                        <button
-                            type="button"
-                            disabled={!form.initials.trim() || loading}
-                            className="rounded-md bg-black text-white px-4 py-2 text-sm font-medium disabled:opacity-60"
-                            onClick={handleSubmit}
-                        >
-                            {loading ? 'Submitting…' : 'Get Recommendation'}
-                        </button>
-                    </div>
-                </div>
-            )}
-            {
-                step === 6 && result && (
-                    <div className="space-y-6">
-                        <h2 className="text-xl font-semibold">Summary & Recommendation</h2>
-
-                        <div className="border p-4 rounded-xl space-y-2 bg-white shadow-sm">
-                            <h3 className="text-lg font-semibold">Your Information</h3>
-
-                            <dl className="space-y-2 text-sm">
-                                <div>
-                                    <dt className="font-medium text-gray-700">Name</dt>
-                                    <dd>{form.firstName} {form.lastName}</dd>
-                                </div>
-
-                                <div>
-                                    <dt className="font-medium text-gray-700">Date of Birth</dt>
-                                    <dd>{form.dob}</dd>
-                                </div>
-
-                                <div>
-                                    <dt className="font-medium text-gray-700">Substances Used (Last 30 Days)</dt>
-                                    <dd>{form.substances.join(", ")}</dd>
-                                </div>
-
-                                <div>
-                                    <dt className="font-medium text-gray-700">Last Use</dt>
-                                    <dd>{form.lastUse}</dd>
-                                </div>
-
-                                <div>
-                                    <dt className="font-medium text-gray-700">Use Frequency</dt>
-                                    <dd>{form.frequency}</dd>
-                                </div>
-
-                                <div>
-                                    <dt className="font-medium text-gray-700">Prior Treatment</dt>
-                                    <dd>{form.priorTreatment === 'yes' ? 'Yes' : 'No'}</dd>
-                                </div>
-
-                                {form.priorTreatment === 'yes' && (
-                                    <>
-                                        <div>
-                                            <dt className="font-medium text-gray-700">Last Treatment Duration</dt>
-                                            <dd>{form.treatmentLastDuration}</dd>
-                                        </div>
-
-                                        <div>
-                                            <dt className="font-medium text-gray-700">Last Treatment Year</dt>
-                                            <dd>{form.treatmentLastYear}</dd>
-                                        </div>
-
-                                        <div>
-                                            <dt className="font-medium text-gray-700">Treatment Facility</dt>
-                                            <dd>{form.treatmentFacility}</dd>
-                                        </div>
-                                    </>
-                                )}
-                            </dl>
-                        </div>
-
-                        {/* Recommendation Section */}
-                        <div className="border p-4 rounded-xl bg-indigo-50 shadow-sm">
-                            <h3 className="text-lg font-semibold text-indigo-800">Recommendation</h3>
-
-                            <p>
-                                <strong>Withdrawal Risk:</strong> {result.withdrawalRisk}
-                            </p>
-                            <p>
-                                <strong>Relapse Risk:</strong> {result.relapseRisk}
-                            </p>
-                            <p>
-                                <strong>Co-Occurring Needs:</strong> {result.coOccurring}
-                            </p>
-                            <p>
-                                <strong>Support Level:</strong> {result.supportLevel}
-                            </p>
-                            <p className="font-semibold text-indigo-900">
-                                Recommended Level of Care: {result.recommendedLevelOfCare}
-                            </p>
-                        </div>
-
-                        {/* Initials for consent */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Enter your initials to confirm accuracy:</label>
-                            <input
-                                type="text"
-                                className="w-full border rounded-md p-2"
-                                maxLength={4}
-                                value={form.initials}
-                                onChange={(e) =>
-                                    setForm((prev) => ({ ...prev, initials: e.target.value.toUpperCase() }))
-                                }
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-900">
+                              Where was that treatment?
+                            </label>
+                            <Input
+                              value={form.treatmentFacility}
+                              onChange={(e) =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  treatmentFacility: e.target.value,
+                                }))
+                              }
                             />
+                          </div>
                         </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
-                        {/* Submit */}
-                        <button
-                            type="button"
-                            disabled={!form.initials || loading}
-                            className="bg-black text-white px-4 py-2 rounded-md w-full disabled:opacity-50"
-                            onClick={handleSubmit}
-                        >
-                            {loading ? 'Submitting...' : 'Submit Intake'}
-                        </button>
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="inline-flex items-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(5)}
+                  className="inline-flex items-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-900"
+                >
+                  Review & confirm
+                </button>
+              </div>
+            </section>
+          )}
+
+          {/* STEP 5 – REVIEW & CONFIRM */}
+          {step === 5 && (
+            <section className="space-y-6">
+              <header>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Review your answers
+                </h1>
+                <p className="mt-1 text-sm text-gray-600">
+                  Please double-check that this looks right before you continue.
+                </p>
+              </header>
+
+              <div className="space-y-4 text-sm">
+                <div>
+                  <h2 className="font-semibold text-gray-900">Basic info</h2>
+                  <dl className="mt-1 space-y-1 text-gray-700">
+                    <div className="flex justify-between gap-4">
+                      <dt>Name</dt>
+                      <dd className="text-right">
+                        {[form.firstName, form.lastName]
+                          .filter(Boolean)
+                          .join(" ") || "Not provided"}
+                      </dd>
                     </div>
-                )
-            }
-        </div >
-    );
+                    <div className="flex justify-between gap-4">
+                      <dt>Date of birth</dt>
+                      <dd className="text-right">
+                        {form.dob || "Not provided"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Phone</dt>
+                      <dd className="text-right">
+                        {form.phone || "Not provided"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Housing / location
+                  </h2>
+                  <dl className="mt-1 space-y-1 text-gray-700">
+                    <div className="flex justify-between gap-4">
+                      <dt>Current location</dt>
+                      <dd className="text-right">
+                        {form.currentLocation || "Not provided"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Where you slept last night</dt>
+                      <dd className="text-right">
+                        {form.sleptLastNight || "Not provided"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Currently homeless</dt>
+                      <dd className="text-right">
+                        {form.isCurrentlyHomeless || "Not provided"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Substance & treatment snapshot
+                  </h2>
+                  <dl className="mt-1 space-y-1 text-gray-700">
+                    <div className="flex justify-between gap-4">
+                      <dt>Substances (last 30 days)</dt>
+                      <dd className="text-right">
+                        {form.substances && form.substances.length > 0
+                          ? form.substances.join(", ")
+                          : "Not provided"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Last use</dt>
+                      <dd className="text-right">
+                        {form.lastUse || "Not provided"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Frequency</dt>
+                      <dd className="text-right">
+                        {form.frequency || "Not provided"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Prior treatment</dt>
+                      <dd className="text-right">
+                        {form.priorTreatment === "yes"
+                          ? "Yes"
+                          : form.priorTreatment === "no"
+                            ? "No"
+                            : "Not provided"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-900">
+                  Please type your initials to confirm this information is
+                  accurate
+                </label>
+                <Input
+                  value={form.initials}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      initials: e.target.value.toUpperCase(),
+                    }))
+                  }
+                  maxLength={4}
+                />
+              </div>
+
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(4)}
+                  className="inline-flex items-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={loading || !form.initials.trim()}
+                  className="inline-flex items-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Submitting…" : "Get recommendation"}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {/* STEP 6 – SUMMARY & RECOMMENDATION */}
+          {step === 6 && result && (
+            <section className="space-y-6">
+              <header>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Summary & recommendation
+                </h1>
+                <p className="mt-1 text-sm text-gray-600">
+                  Based on what you shared, here’s an initial snapshot.
+                </p>
+              </header>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                  <h2 className="text-sm font-semibold text-gray-900">
+                    Your information
+                  </h2>
+                  <dl className="mt-2 space-y-1 text-sm text-gray-700">
+                    <div className="flex justify-between gap-4">
+                      <dt>Name</dt>
+                      <dd className="text-right">
+                        {[form.firstName, form.lastName]
+                          .filter(Boolean)
+                          .join(" ")}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Date of birth</dt>
+                      <dd className="text-right">{form.dob}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Substances used (last 30 days)</dt>
+                      <dd className="text-right">
+                        {form.substances.join(", ")}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Last use</dt>
+                      <dd className="text-right">{form.lastUse}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Use frequency</dt>
+                      <dd className="text-right">{form.frequency}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Prior treatment</dt>
+                      <dd className="text-right">
+                        {form.priorTreatment === "yes" ? "Yes" : "No"}
+                      </dd>
+                    </div>
+                    {form.priorTreatment === "yes" && (
+                      <>
+                        <div className="flex justify-between gap-4">
+                          <dt>Last treatment duration</dt>
+                          <dd className="text-right">
+                            {form.treatmentLastDuration}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <dt>Last treatment year</dt>
+                          <dd className="text-right">
+                            {form.treatmentLastYear}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <dt>Treatment facility</dt>
+                          <dd className="text-right">
+                            {form.treatmentFacility}
+                          </dd>
+                        </div>
+                      </>
+                    )}
+                  </dl>
+                </div>
+
+                <div className="space-y-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <h2 className="text-sm font-semibold text-blue-900">
+                    Recommendation
+                  </h2>
+                  <dl className="mt-2 space-y-1 text-sm text-blue-900">
+                    <div className="flex justify-between gap-4">
+                      <dt>Withdrawal risk</dt>
+                      <dd className="text-right">{result.withdrawalRisk}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Relapse risk</dt>
+                      <dd className="text-right">{result.relapseRisk}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Co-occurring needs</dt>
+                      <dd className="text-right">{result.coOccurring}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Support level</dt>
+                      <dd className="text-right">{result.supportLevel}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Recommended level of care</dt>
+                      <dd className="text-right">
+                        {result.recommendedLevelOfCare}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-900">
+                  Enter your initials to confirm accuracy
+                </label>
+                <Input
+                  value={form.initials}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      initials: e.target.value.toUpperCase(),
+                    }))
+                  }
+                  maxLength={4}
+                />
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  disabled={loading || !form.initials.trim()}
+                  className="inline-flex items-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Submitting..." : "Submit intake"}
+                </button>
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
+    </div>
+  );
 }
