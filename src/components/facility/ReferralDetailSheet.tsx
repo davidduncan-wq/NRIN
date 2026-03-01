@@ -12,6 +12,9 @@ type Referral = {
     status: string;
     created_at: string | null;
     updated_at: string | null;
+    facility_site_id: string | null;
+    notes: string | null;
+    acuity_level: string | null;
 };
 
 type Patient = {
@@ -26,7 +29,9 @@ type ReferralDetailSheetProps = {
     referral: Referral;
     patient: Patient | null;
     isUpdatingStatus: boolean;
+    notesSaving: boolean;
     onChangeStatus: (nextStatus: string) => void;
+    onSaveNotes: (nextNotes: string) => void;
 };
 
 const STATUS_FLOW = [
@@ -109,16 +114,19 @@ export default function ReferralDetailSheet({
     referral,
     patient,
     isUpdatingStatus,
+    notesSaving,
     onChangeStatus,
+    onSaveNotes,
 }: ReferralDetailSheetProps) {
-    const [notesDraft, setNotesDraft] = React.useState("");
+    const [notesDraft, setNotesDraft] = React.useState(referral.notes ?? "");
 
-    // NOTE: This is intentionally *not* persisted yet.
-    // The referrals table does not currently have a `notes` column.
-    // Once schema is migrated, wire notesDraft to Supabase.
+    // Keep local notes in sync if referral changes
+    React.useEffect(() => {
+        setNotesDraft(referral.notes ?? "");
+    }, [referral.id, referral.notes]);
 
     return (
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 lg:flex-row lg:py-10">
+        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-0 py-2 lg:flex-row lg:py-4">
             {/* Left column: identity + metadata */}
             <div className="flex-1 space-y-6">
                 {/* Header card */}
@@ -151,6 +159,12 @@ export default function ReferralDetailSheet({
                                 Referral source
                             </p>
                             <p>{referral.referral_source ?? "—"}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Acuity level
+                            </p>
+                            <p>{referral.acuity_level ?? "Not specified"}</p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -239,9 +253,7 @@ export default function ReferralDetailSheet({
                                 >
                                     <div className="flex w-full items-center justify-between">
                                         <span>{statusLabel(status)}</span>
-                                        {isCurrent && (
-                                            <CheckIcon />
-                                        )}
+                                        {isCurrent && <CheckIcon />}
                                     </div>
                                 </ChoiceButton>
                             );
@@ -253,14 +265,13 @@ export default function ReferralDetailSheet({
                     )}
                 </div>
 
-                {/* Notes (UI only for now) */}
+                {/* Notes (now wired to Supabase) */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                     <h2 className="text-sm font-semibold text-slate-900">Notes</h2>
                     <p className="mt-2 text-xs text-slate-500">
-                        Notes UI is ready. Once the{" "}
-                        <span className="font-mono">notes</span> column exists on{" "}
-                        <span className="font-mono">public.referrals</span>, we&apos;ll
-                        wire this up to Supabase.
+                        Notes are stored on{" "}
+                        <span className="font-mono">public.referrals.notes</span> for your
+                        team&apos;s internal use.
                     </p>
                     <textarea
                         className="mt-3 h-32 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none ring-0 transition focus:border-slate-300 focus:bg-white"
@@ -270,10 +281,11 @@ export default function ReferralDetailSheet({
                     />
                     <button
                         type="button"
-                        disabled
-                        className="mt-3 w-full rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-400"
+                        onClick={() => onSaveNotes(notesDraft)}
+                        disabled={notesSaving}
+                        className="mt-3 w-full rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
                     >
-                        Save notes (coming soon)
+                        {notesSaving ? "Saving…" : "Save notes"}
                     </button>
                 </div>
             </div>

@@ -85,7 +85,7 @@ export default function ReferralsClient({ referrals }: Props) {
                             key={r.id}
                             type="button"
                             onClick={() => router.push(`/facility/referrals/${r.id}`)}
-                            className="grid w-full grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)] items-center px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
+                            className="grid w-full grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)] items-center px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                         >
                             <div className="truncate">{patientLabel}</div>
                             <div className="truncate">
