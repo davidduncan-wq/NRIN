@@ -159,9 +159,13 @@ export default function ReferralDetailSheet({
                     <div className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
                         <div className="space-y-1">
                             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                Referral source
+                                Facility site
                             </p>
-                            <p>{referral.referral_source ?? "—"}</p>
+                            <p className="text-sm font-medium text-slate-800">
+                                {referral.facility_site_id
+                                    ? `${referral.facility_site_id.slice(0, 8)}…`
+                                    : "Not assigned"}
+                            </p>
                         </div>
                         <div className="mt-4">
                             <h3 className="text-sm font-semibold text-slate-900">
@@ -179,8 +183,8 @@ export default function ReferralDetailSheet({
                                         }}
                                         disabled={isUpdatingStatus}
                                         className={`rounded-xl border px-3 py-1 text-sm font-medium capitalize ${acuityDraft === level
-                                                ? "border-sky-500 bg-sky-50 text-sky-700"
-                                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                            ? "border-sky-500 bg-sky-50 text-sky-700"
+                                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                                             }`}
                                     >
                                         {level}
