@@ -11,16 +11,21 @@ import FieldCheck from "@/components/ui/FieldCheck";
 import ChoiceButton from "@/components/ui/ChoiceButton";
 import { supabase } from "@/lib/supabaseClient";
 
-// Smooth fade + slide transition wrapper
+// Smooth wrapper (keep transitions, but never hide content)
 function StepTransition({ children }: { children: React.ReactNode }) {
     return (
-        <div
-            
-            className="transition-all duration-300 ease-out opacity-0 translate-y-2 animate-stepFadeUp"
-        >
+        <div className="transition-all duration-300 ease-out">
             {children}
         </div>
     );
+}
+
+function StickyActionBar({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-4 py-3 shadow-lg sm:hidden">
+      <div className="max-w-xl mx-auto">{children}</div>
+    </div>
+  );
 }
 
 function formatPhoneInput(input: string): string {
@@ -258,6 +263,7 @@ export default function PatientIntakePage() {
             setLoading(false);
         }
     }
+
     async function handleFinalSubmit() {
         if (!result) {
             alert("Please get your recommendation first.");
@@ -341,7 +347,10 @@ export default function PatientIntakePage() {
 
                 alert(
                     `We saved your information, but couldn't send the referral.\n\n` +
-                    `Supabase says: ${"message" in referralError ? referralError.message : JSON.stringify(referralError)}`
+                    `Supabase says: ${"message" in referralError
+                        ? referralError.message
+                        : JSON.stringify(referralError)
+                    }`,
                 );
                 return;
             }
@@ -354,6 +363,7 @@ export default function PatientIntakePage() {
             setLoading(false);
         }
     }
+
     const stepsMeta: { id: Step; label: string; complete: boolean }[] = [
         { id: 1, label: "Basic information", complete: isDemographicsStepComplete },
         { id: 2, label: "Identity & address", complete: isIdentityStepComplete },
@@ -389,8 +399,8 @@ export default function PatientIntakePage() {
                                         type="button"
                                         onClick={() => setStep(s.id)}
                                         className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${step === s.id
-                                            ? "bg-gray-900 text-white shadow-sm"
-                                            : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
+                                                ? "bg-gray-900 text-white shadow-sm"
+                                                : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
                                             }`}
                                     >
                                         <div className="flex flex-col">
@@ -550,17 +560,33 @@ export default function PatientIntakePage() {
                                         <p className="text-xs text-gray-500">
                                             You can edit this later before submitting.
                                         </p>
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(2)}
-                                            disabled={!isDemographicsStepComplete || loading}
-                                            className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
-                                        >
-                                            Continue
-                                        </button>
+                                        {/* Desktop button (unchanged) */}
+                                        <div className="hidden sm:block">
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep(2)}
+                                                disabled={!isDemographicsStepComplete || loading}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full"
+                                            >
+                                                Continue
+                                            </button>
+                                        </div>
+
+                                        {/* Mobile sticky button */}
+                                        <StickyActionBar>
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep(2)}
+                                                disabled={!isDemographicsStepComplete || loading}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full"
+                                            >
+                                                Continue
+                                            </button>
+                                        </StickyActionBar>
                                     </div>
                                 </section>
-                            </StepTransition>)}
+                            </StepTransition>
+                        )}
 
                         {/* STEP 2 – IDENTITY & ADDRESS */}
                         {step === 2 && (
@@ -610,9 +636,7 @@ export default function PatientIntakePage() {
                                                     onChange={(e) =>
                                                         setForm((prev) => ({
                                                             ...prev,
-                                                            state: e.target.value
-                                                                .toUpperCase()
-                                                                .slice(0, 2),
+                                                            state: e.target.value.toUpperCase().slice(0, 2),
                                                         }))
                                                     }
                                                     maxLength={2}
@@ -704,13 +728,29 @@ export default function PatientIntakePage() {
                                         >
                                             Back
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(3)}
-                                            className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900"
-                                        >
-                                            Continue
-                                        </button>
+                                        {/* Desktop button (unchanged) */}
+                                        <div className="hidden sm:block">
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep(3)}
+                                                disabled={!isDemographicsStepComplete || loading}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full"
+                                            >
+                                                Continue
+                                            </button>
+                                        </div>
+
+                                        {/* Mobile sticky button */}
+                                        <StickyActionBar>
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep(3)}
+                                                disabled={!isDemographicsStepComplete || loading}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full"
+                                            >
+                                                Continue
+                                            </button>
+                                        </StickyActionBar>
                                     </div>
                                 </section>
                             </StepTransition>
@@ -739,13 +779,9 @@ export default function PatientIntakePage() {
                                             <option value="street">Street / encampment</option>
                                             <option value="park">Park</option>
                                             <option value="vehicle">Car / vehicle</option>
-                                            <option value="friend_family">
-                                                Friend / family
-                                            </option>
+                                            <option value="friend_family">Friend / family</option>
                                             <option value="hospital_er">Hospital / ER</option>
-                                            <option value="jail_detention">
-                                                Jail / detention
-                                            </option>
+                                            <option value="jail_detention">Jail / detention</option>
                                             <option value="hotel_motel">Hotel / motel</option>
                                             <option value="treatment_facility">
                                                 Treatment facility
@@ -865,13 +901,29 @@ export default function PatientIntakePage() {
                                         >
                                             Back
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(4)}
-                                            className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900"
-                                        >
-                                            Continue
-                                        </button>
+                                        {/* Desktop button */}
+                                        <div className="hidden sm:block">
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep(4)}
+                                                disabled={!isDemographicsStepComplete || loading}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full"
+                                            >
+                                                Continue
+                                            </button>
+                                        </div>
+
+                                        {/* Mobile sticky button */}
+                                        <StickyActionBar>
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep(4)}
+                                                disabled={!isDemographicsStepComplete || loading}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full"
+                                            >
+                                                Continue
+                                            </button>
+                                        </StickyActionBar>
                                     </div>
                                 </section>
                             </StepTransition>
@@ -1005,7 +1057,9 @@ export default function PatientIntakePage() {
                                                     </label>
                                                     <div className="mt-1 grid gap-2 sm:grid-cols-3">
                                                         <ChoiceButton
-                                                            isSelected={form.treatmentLastWhen === "0-12_months"}
+                                                            isSelected={
+                                                                form.treatmentLastWhen === "0-12_months"
+                                                            }
                                                             onClick={() =>
                                                                 setForm((prev) => ({
                                                                     ...prev,
@@ -1016,7 +1070,9 @@ export default function PatientIntakePage() {
                                                             <span className="text-sm">0–12 months ago</span>
                                                         </ChoiceButton>
                                                         <ChoiceButton
-                                                            isSelected={form.treatmentLastWhen === "1-5_years"}
+                                                            isSelected={
+                                                                form.treatmentLastWhen === "1-5_years"
+                                                            }
                                                             onClick={() =>
                                                                 setForm((prev) => ({
                                                                     ...prev,
@@ -1027,7 +1083,9 @@ export default function PatientIntakePage() {
                                                             <span className="text-sm">Over 1 year ago</span>
                                                         </ChoiceButton>
                                                         <ChoiceButton
-                                                            isSelected={form.treatmentLastWhen === "5+_years"}
+                                                            isSelected={
+                                                                form.treatmentLastWhen === "5+_years"
+                                                            }
                                                             onClick={() =>
                                                                 setForm((prev) => ({
                                                                     ...prev,
@@ -1199,13 +1257,27 @@ export default function PatientIntakePage() {
                                         >
                                             Back
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(5)}
-                                            className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900"
-                                        >
-                                            Review &amp; confirm
-                                        </button>
+                                        {/* Desktop primary — Review & confirm */}
+                                        <div className="hidden sm:block">
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep(5)}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 w-full"
+                                            >
+                                                Review &amp; confirm
+                                            </button>
+                                        </div>
+
+                                        {/* Mobile sticky primary — Review & confirm */}
+                                        <StickyActionBar>
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep(5)}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-gray-900 w-full"
+                                            >
+                                                Review &amp; confirm
+                                            </button>
+                                        </StickyActionBar>
                                     </div>
                                 </section>
                             </StepTransition>
@@ -1332,6 +1404,7 @@ export default function PatientIntakePage() {
                                     </div>
 
                                     <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-between">
+                                        {/* Back button (both desktop + mobile) */}
                                         <button
                                             type="button"
                                             onClick={() => setStep(4)}
@@ -1339,14 +1412,30 @@ export default function PatientIntakePage() {
                                         >
                                             Back
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleSubmit}
-                                            disabled={loading}
-                                            className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
-                                        >
-                                            {loading ? "Submitting…" : "Get recommendation"}
-                                        </button>
+
+                                        {/* Desktop primary — Get recommendation */}
+                                        <div className="hidden sm:block">
+                                            <button
+                                                type="button"
+                                                onClick={handleSubmit}
+                                                disabled={loading}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-gray-900"
+                                            >
+                                                {loading ? "Submitting..." : "Get recommendation"}
+                                            </button>
+                                        </div>
+
+                                        {/* Mobile sticky primary — Get recommendation */}
+                                        <StickyActionBar>
+                                            <button
+                                                type="button"
+                                                onClick={handleSubmit}
+                                                disabled={loading}
+                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-gray-900"
+                                            >
+                                                {loading ? "Submitting..." : "Get recommendation"}
+                                            </button>
+                                        </StickyActionBar>
                                     </div>
                                 </section>
                             </StepTransition>
@@ -1442,11 +1531,17 @@ export default function PatientIntakePage() {
                                                 </div>
                                                 <div className="flex justify-between gap-4">
                                                     <dt className="text-gray-500">Relapse risk</dt>
-                                                    <dd className="text-right">{result.relapseRisk}</dd>
+                                                    <dd className="text-right">
+                                                        {result.relapseRisk}
+                                                    </dd>
                                                 </div>
                                                 <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Co-occurring needs</dt>
-                                                    <dd className="text-right">{result.coOccurring}</dd>
+                                                    <dt className="text-gray-500">
+                                                        Co-occurring needs
+                                                    </dt>
+                                                    <dd className="text-right">
+                                                        {result.coOccurring}
+                                                    </dd>
                                                 </div>
                                                 <div className="flex justify-between gap-4">
                                                     <dt className="text-gray-500">Support level</dt>
@@ -1485,7 +1580,9 @@ export default function PatientIntakePage() {
                                             />
                                         </div>
 
-                                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+                                        {/* Step 6 — Actions */}
+                                        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
+                                            {/* Back button */}
                                             <button
                                                 type="button"
                                                 onClick={() => setStep(5)}
@@ -1493,14 +1590,30 @@ export default function PatientIntakePage() {
                                             >
                                                 Back to review
                                             </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleFinalSubmit}
-                                                disabled={loading}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
-                                            >
-                                                {loading ? "Submitting..." : "Submit intake"}
-                                            </button>
+
+                                            {/* Desktop primary — Submit intake */}
+                                            <div className="hidden sm:block">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleFinalSubmit}
+                                                    disabled={loading}
+                                                    className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-gray-900"
+                                                >
+                                                    {loading ? "Submitting..." : "Submit intake"}
+                                                </button>
+                                            </div>
+
+                                            {/* Mobile sticky primary — Submit intake */}
+                                            <StickyActionBar>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleFinalSubmit}
+                                                    disabled={loading}
+                                                    className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-gray-900"
+                                                >
+                                                    {loading ? "Submitting..." : "Submit intake"}
+                                                </button>
+                                            </StickyActionBar>
                                         </div>
                                     </div>
                                 </section>
