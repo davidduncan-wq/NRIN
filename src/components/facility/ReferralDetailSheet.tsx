@@ -28,11 +28,13 @@ type Patient = {
 type ReferralDetailSheetProps = {
     referral: Referral;
     patient: Patient | null;
+    facilitySites: { id: string; name: string }[];   // ← ADD THIS
     isUpdatingStatus: boolean;
     notesSaving: boolean;
     onChangeStatus: (nextStatus: string) => void;
     onSaveNotes: (nextNotes: string) => void;
-    onChangeAcuity: (nextLevel: string) => void;  // ← added
+    onChangeAcuity: (nextLevel: string) => void;
+    onChangeFacility: (siteId: string | null) => void; // ← ADD THIS
 };
 
 const STATUS_FLOW = [
@@ -114,12 +116,15 @@ const statusBadgeClasses = (status: string) => {
 export default function ReferralDetailSheet({
     referral,
     patient,
+    facilitySites,         // ← added
     isUpdatingStatus,
     notesSaving,
     onChangeStatus,
     onSaveNotes,
     onChangeAcuity,
+    onChangeFacility,       // ← added
 }: ReferralDetailSheetProps) {
+    
     const [acuityDraft, setAcuityDraft] = React.useState(referral.acuity_level ?? "");
     const [notesDraft, setNotesDraft] = React.useState(referral.notes ?? "");
 
@@ -166,6 +171,25 @@ export default function ReferralDetailSheet({
                                     ? `${referral.facility_site_id.slice(0, 8)}…`
                                     : "Not assigned"}
                             </p>
+                        </div>
+                        <div className="space-y-1 mt-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Assign facility site
+                            </p>
+
+                            <select
+                                value={referral.facility_site_id ?? ""}
+                                onChange={(e) => onChangeFacility(e.target.value)}
+                                disabled={isUpdatingStatus}
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                            >
+                                <option value="">Unassigned</option>
+                                {facilitySites.map((site) => (
+                                    <option key={site.id} value={site.id}>
+                                        {site.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div className="mt-4">
                             <h3 className="text-sm font-semibold text-slate-900">
