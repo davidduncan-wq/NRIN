@@ -124,7 +124,7 @@ export default function ReferralDetailSheet({
     onChangeAcuity,
     onChangeFacility,       // ← added
 }: ReferralDetailSheetProps) {
-    
+
     const [acuityDraft, setAcuityDraft] = React.useState(referral.acuity_level ?? "");
     const [notesDraft, setNotesDraft] = React.useState(referral.notes ?? "");
 
@@ -168,7 +168,8 @@ export default function ReferralDetailSheet({
                             </p>
                             <p className="text-sm font-medium text-slate-800">
                                 {referral.facility_site_id
-                                    ? `${referral.facility_site_id.slice(0, 8)}…`
+                                    ? facilitySites.find((s) => s.id === referral.facility_site_id)?.name ??
+                                    "Unknown site"
                                     : "Not assigned"}
                             </p>
                         </div>
