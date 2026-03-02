@@ -32,6 +32,7 @@ type ReferralDetailSheetProps = {
     notesSaving: boolean;
     onChangeStatus: (nextStatus: string) => void;
     onSaveNotes: (nextNotes: string) => void;
+    onChangeAcuity: (nextLevel: string) => void;  // ← added
 };
 
 const STATUS_FLOW = [
@@ -117,7 +118,9 @@ export default function ReferralDetailSheet({
     notesSaving,
     onChangeStatus,
     onSaveNotes,
+    onChangeAcuity,
 }: ReferralDetailSheetProps) {
+    const [acuityDraft, setAcuityDraft] = React.useState(referral.acuity_level ?? "");
     const [notesDraft, setNotesDraft] = React.useState(referral.notes ?? "");
 
     // Keep local notes in sync if referral changes
@@ -160,11 +163,33 @@ export default function ReferralDetailSheet({
                             </p>
                             <p>{referral.referral_source ?? "—"}</p>
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <div className="mt-4">
+                            <h3 className="text-sm font-semibold text-slate-900">
                                 Acuity level
-                            </p>
-                            <p>{referral.acuity_level ?? "Not specified"}</p>
+                            </h3>
+
+                            <div className="mt-2 flex gap-2">
+                                {["low", "medium", "high"].map((level) => (
+                                    <button
+                                        key={level}
+                                        type="button"
+                                        onClick={() => {
+                                            setAcuityDraft(level);
+                                            onChangeAcuity(level);
+                                        }}
+                                        disabled={isUpdatingStatus}
+                                        className={`rounded-xl border px-3 py-1 text-sm font-medium capitalize ${acuityDraft === level
+                                                ? "border-sky-500 bg-sky-50 text-sky-700"
+                                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                            }`}
+                                    >
+                                        {level}
+                                        {acuityDraft === level && (
+                                            <CheckIcon className="ml-1 h-4 w-4 text-sky-600" />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <div className="space-y-1">
                             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">

@@ -160,6 +160,30 @@ export default function ReferralDetailPage() {
         );
         setIsUpdatingStatus(false);
     };
+    const handleChangeAcuity = async (nextLevel: string) => {
+        if (!referral) return;
+
+        setIsUpdatingStatus(true);
+
+        const { data, error } = await supabase
+            .from("referrals")
+            .update({ acuity_level: nextLevel })
+            .eq("id", referral.id)
+            .select("*")
+            .single();
+
+        if (error) {
+            console.error("Error updating acuity level", error);
+            setIsUpdatingStatus(false);
+            return;
+        }
+
+        setReferral((prev) =>
+            prev ? { ...prev, acuity_level: data.acuity_level } : prev
+        );
+
+        setIsUpdatingStatus(false);
+    };
 
     const handleSaveNotes = async (nextNotes: string) => {
         if (!referral) return;
@@ -264,6 +288,7 @@ export default function ReferralDetailPage() {
                 notesSaving={isSavingNotes}
                 onChangeStatus={handleChangeStatus}
                 onSaveNotes={handleSaveNotes}
+                onChangeAcuity={handleChangeAcuity}
             />
         </div>
     );
