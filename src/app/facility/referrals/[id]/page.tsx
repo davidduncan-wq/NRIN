@@ -37,6 +37,9 @@ export default function ReferralDetailPage() {
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [isSavingNotes, setIsSavingNotes] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [facilitySites, setFacilitySites] = useState<
+        { id: string; name: string }[]
+    >([]);
 
     useEffect(() => {
         if (!referralId || referralId === "[id]") return;
@@ -106,6 +109,13 @@ export default function ReferralDetailPage() {
                         date_of_birth: patientRow.date_of_birth ?? patientRow.dob ?? null,
                         phone: patientRow.phone ?? null,
                     });
+                    // 3. Load facility sites
+                    const { data: facilitySites = [] } = await supabase
+                        .from("facility_sites")
+                        .select("id, name")
+                        .order("name", { ascending: true });
+
+                    setFacilitySites(facilitySites);
                 }
             }
 
@@ -184,7 +194,30 @@ export default function ReferralDetailPage() {
 
         setIsUpdatingStatus(false);
     };
+    const handleChangeFacility = async (siteId: string | null) => {
+        if (!referral) return;
 
+        setIsUpdatingStatus(true);
+
+        const { data, error } = await supabase
+            .from("referrals")
+            .update({ facility_site_id: siteId || null })
+            .eq("id", referral.id)
+            .select("*")
+            .single();
+
+        if (error) {
+            console.error("Error updating facility site", error);
+            setIsUpdatingStatus(false);
+            return;
+        }
+
+        setReferral((prev) =>
+            prev ? { ...prev, facility_site_id: data.facility_site_id } : prev
+        );
+
+        setIsUpdatingStatus(false);
+    };
     const handleSaveNotes = async (nextNotes: string) => {
         if (!referral) return;
 
@@ -282,13 +315,17 @@ export default function ReferralDetailPage() {
             </div>
 
             <ReferralDetailSheet
+
                 referral={referral}
                 patient={patient}
+                facilitySites={facilitySites}
                 isUpdatingStatus={isUpdatingStatus}
                 notesSaving={isSavingNotes}
                 onChangeStatus={handleChangeStatus}
                 onSaveNotes={handleSaveNotes}
                 onChangeAcuity={handleChangeAcuity}
+                onChangeFacility={handleChangeFacility}
+
             />
         </div>
     );
