@@ -1,8 +1,9 @@
 // NRIN/src/app/patient/page.tsx
 "use client";
 
+import { Step5Review } from "./components/Step5Review";
 import { useState } from "react";
-
+import { Step3Housing } from "./components/Step3Housing";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { PhoneInput } from "@/components/ui/PhoneInput";
@@ -10,6 +11,9 @@ import { DateInput } from "@/components/ui/DateInput";
 import FieldCheck from "@/components/ui/FieldCheck";
 import ChoiceButton from "@/components/ui/ChoiceButton";
 import { supabase } from "@/lib/supabaseClient";
+import { Step1Demographics } from "./components/Step1Demographics";
+import { Step2Contact } from "./components/Step2Contact";
+import { Step4Substances } from "./components/Step4Substances";
 
 // Smooth wrapper (keep transitions, but never hide content)
 function StepTransition({ children }: { children: React.ReactNode }) {
@@ -21,11 +25,11 @@ function StepTransition({ children }: { children: React.ReactNode }) {
 }
 
 function StickyActionBar({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-4 py-3 shadow-lg sm:hidden">
-      <div className="max-w-xl mx-auto">{children}</div>
-    </div>
-  );
+    return (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-4 py-3 shadow-lg sm:hidden">
+            <div className="max-w-xl mx-auto">{children}</div>
+        </div>
+    );
 }
 
 function formatPhoneInput(input: string): string {
@@ -98,7 +102,7 @@ function computeAgeYears(isoDate: string | undefined | null): number | null {
     return age;
 }
 
-type FormState = {
+export type FormState = {
     firstName: string;
     lastName: string;
     phone: string;
@@ -399,8 +403,8 @@ export default function PatientIntakePage() {
                                         type="button"
                                         onClick={() => setStep(s.id)}
                                         className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${step === s.id
-                                                ? "bg-gray-900 text-white shadow-sm"
-                                                : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
+                                            ? "bg-gray-900 text-white shadow-sm"
+                                            : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
                                             }`}
                                     >
                                         <div className="flex flex-col">
@@ -459,986 +463,66 @@ export default function PatientIntakePage() {
                             </header>
                         )}
 
+
                         {/* STEP 1 – DEMOGRAPHICS */}
                         {step === 1 && (
-                            <StepTransition>
-                                <section className="space-y-6">
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-900">
-                                                First name
-                                            </label>
-                                            <Input
-                                                className="mt-1 w-full"
-                                                value={form.firstName}
-                                                onChange={(e) =>
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        firstName: e.target.value,
-                                                    }))
-                                                }
-                                                autoComplete="given-name"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-900">
-                                                Last name
-                                            </label>
-                                            <Input
-                                                className="mt-1 w-full"
-                                                value={form.lastName}
-                                                onChange={(e) =>
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        lastName: e.target.value,
-                                                    }))
-                                                }
-                                                autoComplete="family-name"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-900">
-                                                Date of birth
-                                            </label>
-                                            <DateInput
-                                                className="mt-1 w-full"
-                                                placeholder="MM/DD/YYYY"
-                                                value={form.dob}
-                                                onChange={(e) => {
-                                                    const raw = e.target.value;
-                                                    const formatted = formatDobMMDDYYYY(raw);
-                                                    const iso = dobToISO(formatted);
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        dob: formatted,
-                                                        dobISO: iso ?? "",
-                                                    }));
-                                                }}
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-900">
-                                                Mobile phone
-                                            </label>
-                                            <PhoneInput
-                                                className="mt-1 w-full"
-                                                value={form.phone}
-                                                onChange={(e) =>
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        phone: formatPhoneInput(e.target.value),
-                                                    }))
-                                                }
-                                                maxLength={14} // (XXX) YYY-ZZZZ
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-900">
-                                            Where are you now?
-                                        </label>
-                                        <Input
-                                            className="mt-1 w-full"
-                                            value={form.currentLocation}
-                                            onChange={(e) =>
-                                                setForm((prev) => ({
-                                                    ...prev,
-                                                    currentLocation: e.target.value,
-                                                }))
-                                            }
-                                            placeholder="City / facility / general location"
-                                        />
-                                    </div>
-
-                                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <p className="text-xs text-gray-500">
-                                            You can edit this later before submitting.
-                                        </p>
-                                        {/* Desktop button (unchanged) */}
-                                        <div className="hidden sm:block">
-                                            <button
-                                                type="button"
-                                                onClick={() => setStep(2)}
-                                                disabled={!isDemographicsStepComplete || loading}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full"
-                                            >
-                                                Continue
-                                            </button>
-                                        </div>
-
-                                        {/* Mobile sticky button */}
-                                        <StickyActionBar>
-                                            <button
-                                                type="button"
-                                                onClick={() => setStep(2)}
-                                                disabled={!isDemographicsStepComplete || loading}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full"
-                                            >
-                                                Continue
-                                            </button>
-                                        </StickyActionBar>
-                                    </div>
-                                </section>
-                            </StepTransition>
+                            <Step1Demographics
+                                form={form}
+                                setForm={setForm}
+                                loading={loading}
+                                isComplete={isDemographicsStepComplete}
+                                onNext={() => setStep(2)}
+                                formatDobMMDDYYYY={formatDobMMDDYYYY}
+                                dobToISO={dobToISO}
+                                formatPhoneInput={formatPhoneInput}
+                                ageYears={ageYears}
+                            />
                         )}
 
-                        {/* STEP 2 – IDENTITY & ADDRESS */}
+                        {/* STEP 2 – CONTACT & ADDRESS */}
                         {step === 2 && (
-                            <StepTransition>
-                                <section className="space-y-6">
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-900">
-                                                Home / primary address
-                                            </label>
-                                            <Input
-                                                className="mt-1 w-full"
-                                                value={form.address}
-                                                onChange={(e) =>
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        address: e.target.value,
-                                                    }))
-                                                }
-                                                autoComplete="street-address"
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-4 sm:grid-cols-3">
-                                            <div className="sm:col-span-2">
-                                                <label className="block text-sm font-medium text-gray-900">
-                                                    City
-                                                </label>
-                                                <Input
-                                                    className="mt-1 w-full"
-                                                    value={form.city}
-                                                    onChange={(e) =>
-                                                        setForm((prev) => ({
-                                                            ...prev,
-                                                            city: e.target.value,
-                                                        }))
-                                                    }
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-900">
-                                                    State
-                                                </label>
-                                                <Input
-                                                    className="mt-1 w-full"
-                                                    value={form.state}
-                                                    onChange={(e) =>
-                                                        setForm((prev) => ({
-                                                            ...prev,
-                                                            state: e.target.value.toUpperCase().slice(0, 2),
-                                                        }))
-                                                    }
-                                                    maxLength={2}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="w-32">
-                                            <label className="block text-sm font-medium text-gray-900">
-                                                ZIP
-                                            </label>
-                                            <Input
-                                                className="mt-1 w-full"
-                                                value={form.zip}
-                                                onChange={(e) =>
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        zip: e.target.value.replace(/\D/g, "").slice(0, 5),
-                                                    }))
-                                                }
-                                                maxLength={5}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Sex assigned at birth */}
-                                    <div className="space-y-2">
-                                        <p className="text-sm font-medium text-gray-900">
-                                            Sex assigned at birth
-                                        </p>
-                                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                                            {["male", "female", "intersex", "prefer_not_to_say"].map(
-                                                (v) => (
-                                                    <ChoiceButton
-                                                        key={v}
-                                                        isSelected={form.sexAtBirth === v}
-                                                        onClick={() =>
-                                                            setForm((prev) => ({
-                                                                ...prev,
-                                                                sexAtBirth: v,
-                                                            }))
-                                                        }
-                                                    >
-                                                        <span className="text-sm">
-                                                            {v.replace("_", " ")}
-                                                        </span>
-                                                    </ChoiceButton>
-                                                ),
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Gender identity */}
-                                    <div className="space-y-2">
-                                        <p className="text-sm font-medium text-gray-900">
-                                            Gender identity
-                                        </p>
-                                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                                            {[
-                                                "man",
-                                                "woman",
-                                                "nonbinary",
-                                                "another",
-                                                "prefer_not_to_say",
-                                            ].map((v) => (
-                                                <ChoiceButton
-                                                    key={v}
-                                                    isSelected={form.genderIdentity === v}
-                                                    onClick={() =>
-                                                        setForm((prev) => ({
-                                                            ...prev,
-                                                            genderIdentity: v,
-                                                        }))
-                                                    }
-                                                >
-                                                    <span className="text-sm">
-                                                        {v.replace("_", " ")}
-                                                    </span>
-                                                </ChoiceButton>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-between">
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(1)}
-                                            className="inline-flex items-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200"
-                                        >
-                                            Back
-                                        </button>
-                                        {/* Desktop button (unchanged) */}
-                                        <div className="hidden sm:block">
-                                            <button
-                                                type="button"
-                                                onClick={() => setStep(3)}
-                                                disabled={!isDemographicsStepComplete || loading}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full"
-                                            >
-                                                Continue
-                                            </button>
-                                        </div>
-
-                                        {/* Mobile sticky button */}
-                                        <StickyActionBar>
-                                            <button
-                                                type="button"
-                                                onClick={() => setStep(3)}
-                                                disabled={!isDemographicsStepComplete || loading}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full"
-                                            >
-                                                Continue
-                                            </button>
-                                        </StickyActionBar>
-                                    </div>
-                                </section>
-                            </StepTransition>
+                            <Step2Contact
+                                form={form}
+                                setForm={setForm}
+                                loading={loading}
+                                onNext={() => setStep(3)}
+                                onBack={() => setStep(1)}
+                            />
                         )}
-
                         {/* STEP 3 – HOUSING */}
                         {step === 3 && (
-                            <StepTransition>
-                                <section className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-900">
-                                            Where did you sleep last night?
-                                        </label>
-                                        <Select
-                                            className="mt-1 w-full"
-                                            value={form.sleptLastNight}
-                                            onChange={(e) =>
-                                                setForm((prev) => ({
-                                                    ...prev,
-                                                    sleptLastNight: e.target.value,
-                                                }))
-                                            }
-                                        >
-                                            <option value="">Select one</option>
-                                            <option value="shelter">Shelter</option>
-                                            <option value="street">Street / encampment</option>
-                                            <option value="park">Park</option>
-                                            <option value="vehicle">Car / vehicle</option>
-                                            <option value="friend_family">Friend / family</option>
-                                            <option value="hospital_er">Hospital / ER</option>
-                                            <option value="jail_detention">Jail / detention</option>
-                                            <option value="hotel_motel">Hotel / motel</option>
-                                            <option value="treatment_facility">
-                                                Treatment facility
-                                            </option>
-                                            <option value="other">Other</option>
-                                            <option value="decline">Decline to answer</option>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <p className="text-sm font-medium text-gray-900">
-                                            Are you currently homeless?
-                                        </p>
-                                        <div className="flex flex-wrap gap-2">
-                                            <ChoiceButton
-                                                isSelected={form.isCurrentlyHomeless === "yes"}
-                                                onClick={() =>
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        isCurrentlyHomeless: "yes",
-                                                    }))
-                                                }
-                                            >
-                                                <span className="text-sm">Yes</span>
-                                            </ChoiceButton>
-                                            <ChoiceButton
-                                                isSelected={form.isCurrentlyHomeless === "no"}
-                                                onClick={() =>
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        isCurrentlyHomeless: "no",
-                                                        lastKnownAddress: "",
-                                                        hasAddressYouCanUse: "",
-                                                        mailingAddress: "",
-                                                    }))
-                                                }
-                                            >
-                                                <span className="text-sm">No</span>
-                                            </ChoiceButton>
-                                        </div>
-                                    </div>
-
-                                    {form.isCurrentlyHomeless === "yes" && (
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-900">
-                                                    Last known address
-                                                </label>
-                                                <Input
-                                                    className="mt-1 w-full"
-                                                    value={form.lastKnownAddress}
-                                                    onChange={(e) =>
-                                                        setForm((prev) => ({
-                                                            ...prev,
-                                                            lastKnownAddress: e.target.value,
-                                                        }))
-                                                    }
-                                                />
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-medium text-gray-900">
-                                                    Do you have an address you can use?
-                                                </p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    <ChoiceButton
-                                                        isSelected={form.hasAddressYouCanUse === "yes"}
-                                                        onClick={() =>
-                                                            setForm((prev) => ({
-                                                                ...prev,
-                                                                hasAddressYouCanUse: "yes",
-                                                            }))
-                                                        }
-                                                    >
-                                                        <span className="text-sm">Yes</span>
-                                                    </ChoiceButton>
-                                                    <ChoiceButton
-                                                        isSelected={form.hasAddressYouCanUse === "no"}
-                                                        onClick={() =>
-                                                            setForm((prev) => ({
-                                                                ...prev,
-                                                                hasAddressYouCanUse: "no",
-                                                                mailingAddress: "",
-                                                            }))
-                                                        }
-                                                    >
-                                                        <span className="text-sm">No</span>
-                                                    </ChoiceButton>
-                                                </div>
-                                            </div>
-
-                                            {form.hasAddressYouCanUse === "yes" && (
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-900">
-                                                        Address you can use
-                                                    </label>
-                                                    <Input
-                                                        className="mt-1 w-full"
-                                                        value={form.mailingAddress}
-                                                        onChange={(e) =>
-                                                            setForm((prev) => ({
-                                                                ...prev,
-                                                                mailingAddress: e.target.value,
-                                                            }))
-                                                        }
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-between">
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(2)}
-                                            className="inline-flex items-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200"
-                                        >
-                                            Back
-                                        </button>
-                                        {/* Desktop button */}
-                                        <div className="hidden sm:block">
-                                            <button
-                                                type="button"
-                                                onClick={() => setStep(4)}
-                                                disabled={!isDemographicsStepComplete || loading}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full"
-                                            >
-                                                Continue
-                                            </button>
-                                        </div>
-
-                                        {/* Mobile sticky button */}
-                                        <StickyActionBar>
-                                            <button
-                                                type="button"
-                                                onClick={() => setStep(4)}
-                                                disabled={!isDemographicsStepComplete || loading}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full"
-                                            >
-                                                Continue
-                                            </button>
-                                        </StickyActionBar>
-                                    </div>
-                                </section>
-                            </StepTransition>
+                            <Step3Housing
+                                form={form}
+                                setForm={setForm}
+                                loading={loading}
+                                isComplete={true}
+                                onNext={() => setStep(4)}
+                                onBack={() => setStep(2)}
+                            />
                         )}
 
                         {/* STEP 4 – SUBSTANCES & TREATMENT */}
                         {step === 4 && (
-                            <StepTransition>
-                                <section className="space-y-6">
-                                    <div className="space-y-2">
-                                        <p className="text-sm font-medium text-gray-900">
-                                            Substances used in the last 30 days
-                                        </p>
-                                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                                            {[
-                                                "alcohol",
-                                                "opioids",
-                                                "benzodiazepines",
-                                                "stimulants",
-                                                "ketamine",
-                                                "kratom",
-                                                "hallucinogens",
-                                                "inhalants",
-                                            ].map((s) => (
-                                                <ChoiceButton
-                                                    key={s}
-                                                    isSelected={form.substances.includes(s)}
-                                                    onClick={() => toggleSubstance(s)}
-                                                >
-                                                    <span className="text-sm">
-                                                        {s.charAt(0).toUpperCase() + s.slice(1)}
-                                                    </span>
-                                                </ChoiceButton>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-900">
-                                                Last use
-                                            </label>
-                                            <Select
-                                                className="mt-1 w-full"
-                                                value={form.lastUse}
-                                                onChange={(e) =>
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        lastUse: e.target.value,
-                                                    }))
-                                                }
-                                            >
-                                                <option value="">Select one</option>
-                                                <option value="today">Today</option>
-                                                <option value="yesterday">Yesterday</option>
-                                                <option value="2-3_days">2–3 days ago</option>
-                                                <option value="4-7_days">4–7 days ago</option>
-                                                <option value="more_than_week">
-                                                    More than a week ago
-                                                </option>
-                                            </Select>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-900">
-                                                Frequency
-                                            </label>
-                                            <Select
-                                                className="mt-1 w-full"
-                                                value={form.frequency}
-                                                onChange={(e) =>
-                                                    setForm((prev) => ({
-                                                        ...prev,
-                                                        frequency: e.target.value,
-                                                    }))
-                                                }
-                                            >
-                                                <option value="">Select one</option>
-                                                <option value="daily">Daily</option>
-                                                <option value="3-5_days_week">3–5 days / week</option>
-                                                <option value="1-2_days_week">1–2 days / week</option>
-                                                <option value="less_than_week">
-                                                    Less than once a week
-                                                </option>
-                                            </Select>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-gray-900">
-                                                Have you been to treatment before?
-                                            </p>
-                                            <div className="flex flex-wrap gap-2">
-                                                <ChoiceButton
-                                                    isSelected={form.priorTreatment === "yes"}
-                                                    onClick={() =>
-                                                        setForm((prev) => ({
-                                                            ...prev,
-                                                            priorTreatment: "yes",
-                                                        }))
-                                                    }
-                                                >
-                                                    <span className="text-sm">Yes</span>
-                                                </ChoiceButton>
-                                                <ChoiceButton
-                                                    isSelected={form.priorTreatment === "no"}
-                                                    onClick={() =>
-                                                        setForm((prev) => ({
-                                                            ...prev,
-                                                            priorTreatment: "no",
-                                                            treatmentLastWhen: "",
-                                                            treatmentLastDuration: "",
-                                                            treatmentPHPCompleted: "",
-                                                            treatmentIOPCompleted: "",
-                                                            treatmentLastYear: "",
-                                                            treatmentFacility: "",
-                                                        }))
-                                                    }
-                                                >
-                                                    <span className="text-sm">No</span>
-                                                </ChoiceButton>
-                                            </div>
-                                        </div>
-
-                                        {form.priorTreatment === "yes" && (
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-900">
-                                                        When were you last in treatment?
-                                                    </label>
-                                                    <div className="mt-1 grid gap-2 sm:grid-cols-3">
-                                                        <ChoiceButton
-                                                            isSelected={
-                                                                form.treatmentLastWhen === "0-12_months"
-                                                            }
-                                                            onClick={() =>
-                                                                setForm((prev) => ({
-                                                                    ...prev,
-                                                                    treatmentLastWhen: "0-12_months",
-                                                                }))
-                                                            }
-                                                        >
-                                                            <span className="text-sm">0–12 months ago</span>
-                                                        </ChoiceButton>
-                                                        <ChoiceButton
-                                                            isSelected={
-                                                                form.treatmentLastWhen === "1-5_years"
-                                                            }
-                                                            onClick={() =>
-                                                                setForm((prev) => ({
-                                                                    ...prev,
-                                                                    treatmentLastWhen: "1-5_years",
-                                                                }))
-                                                            }
-                                                        >
-                                                            <span className="text-sm">Over 1 year ago</span>
-                                                        </ChoiceButton>
-                                                        <ChoiceButton
-                                                            isSelected={
-                                                                form.treatmentLastWhen === "5+_years"
-                                                            }
-                                                            onClick={() =>
-                                                                setForm((prev) => ({
-                                                                    ...prev,
-                                                                    treatmentLastWhen: "5+_years",
-                                                                }))
-                                                            }
-                                                        >
-                                                            <span className="text-sm">5+ years ago</span>
-                                                        </ChoiceButton>
-                                                    </div>
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-900">
-                                                        How long were you in treatment?
-                                                    </label>
-                                                    <div className="mt-1 grid gap-2 sm:grid-cols-3">
-                                                        <ChoiceButton
-                                                            isSelected={
-                                                                form.treatmentLastDuration === "0-7_days"
-                                                            }
-                                                            onClick={() =>
-                                                                setForm((prev) => ({
-                                                                    ...prev,
-                                                                    treatmentLastDuration: "0-7_days",
-                                                                }))
-                                                            }
-                                                        >
-                                                            <span className="text-sm">0–7 days</span>
-                                                        </ChoiceButton>
-                                                        <ChoiceButton
-                                                            isSelected={
-                                                                form.treatmentLastDuration === "7-30_days"
-                                                            }
-                                                            onClick={() =>
-                                                                setForm((prev) => ({
-                                                                    ...prev,
-                                                                    treatmentLastDuration: "7-30_days",
-                                                                }))
-                                                            }
-                                                        >
-                                                            <span className="text-sm">7–30 days</span>
-                                                        </ChoiceButton>
-                                                        <ChoiceButton
-                                                            isSelected={
-                                                                form.treatmentLastDuration === "30+_days"
-                                                            }
-                                                            onClick={() =>
-                                                                setForm((prev) => ({
-                                                                    ...prev,
-                                                                    treatmentLastDuration: "30+_days",
-                                                                }))
-                                                            }
-                                                        >
-                                                            <span className="text-sm">30+ days</span>
-                                                        </ChoiceButton>
-                                                    </div>
-                                                </div>
-
-                                                {form.treatmentLastDuration === "30+_days" && (
-                                                    <div className="space-y-4">
-                                                        <div>
-                                                            <p className="text-sm font-medium text-gray-900">
-                                                                Programs completed
-                                                            </p>
-                                                            <div className="mt-1 grid gap-2 sm:grid-cols-2">
-                                                                <ChoiceButton
-                                                                    isSelected={
-                                                                        form.treatmentPHPCompleted === "yes"
-                                                                    }
-                                                                    onClick={() =>
-                                                                        setForm((prev) => ({
-                                                                            ...prev,
-                                                                            treatmentPHPCompleted: "yes",
-                                                                        }))
-                                                                    }
-                                                                >
-                                                                    <span className="text-sm">Completed PHP</span>
-                                                                </ChoiceButton>
-                                                                <ChoiceButton
-                                                                    isSelected={
-                                                                        form.treatmentPHPCompleted === "no"
-                                                                    }
-                                                                    onClick={() =>
-                                                                        setForm((prev) => ({
-                                                                            ...prev,
-                                                                            treatmentPHPCompleted: "no",
-                                                                        }))
-                                                                    }
-                                                                >
-                                                                    <span className="text-sm">
-                                                                        Didn’t complete PHP
-                                                                    </span>
-                                                                </ChoiceButton>
-                                                                <ChoiceButton
-                                                                    isSelected={
-                                                                        form.treatmentIOPCompleted === "yes"
-                                                                    }
-                                                                    onClick={() =>
-                                                                        setForm((prev) => ({
-                                                                            ...prev,
-                                                                            treatmentIOPCompleted: "yes",
-                                                                        }))
-                                                                    }
-                                                                >
-                                                                    <span className="text-sm">Completed IOP</span>
-                                                                </ChoiceButton>
-                                                                <ChoiceButton
-                                                                    isSelected={
-                                                                        form.treatmentIOPCompleted === "no"
-                                                                    }
-                                                                    onClick={() =>
-                                                                        setForm((prev) => ({
-                                                                            ...prev,
-                                                                            treatmentIOPCompleted: "no",
-                                                                        }))
-                                                                    }
-                                                                >
-                                                                    <span className="text-sm">
-                                                                        Didn’t complete IOP
-                                                                    </span>
-                                                                </ChoiceButton>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="grid gap-4 sm:grid-cols-2">
-                                                            <div>
-                                                                <label className="block text-sm font-medium text-gray-900">
-                                                                    What year was that? (YYYY)
-                                                                </label>
-                                                                <Input
-                                                                    className="mt-1 w-full"
-                                                                    value={form.treatmentLastYear}
-                                                                    onChange={(e) =>
-                                                                        setForm((prev) => ({
-                                                                            ...prev,
-                                                                            treatmentLastYear: e.target.value,
-                                                                        }))
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-sm font-medium text-gray-900">
-                                                                    Where was that treatment?
-                                                                </label>
-                                                                <Input
-                                                                    className="mt-1 w-full"
-                                                                    value={form.treatmentFacility}
-                                                                    onChange={(e) =>
-                                                                        setForm((prev) => ({
-                                                                            ...prev,
-                                                                            treatmentFacility: e.target.value,
-                                                                        }))
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-between">
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(3)}
-                                            className="inline-flex items-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200"
-                                        >
-                                            Back
-                                        </button>
-                                        {/* Desktop primary — Review & confirm */}
-                                        <div className="hidden sm:block">
-                                            <button
-                                                type="button"
-                                                onClick={() => setStep(5)}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 w-full"
-                                            >
-                                                Review &amp; confirm
-                                            </button>
-                                        </div>
-
-                                        {/* Mobile sticky primary — Review & confirm */}
-                                        <StickyActionBar>
-                                            <button
-                                                type="button"
-                                                onClick={() => setStep(5)}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-gray-900 w-full"
-                                            >
-                                                Review &amp; confirm
-                                            </button>
-                                        </StickyActionBar>
-                                    </div>
-                                </section>
-                            </StepTransition>
+                            <Step4Substances
+                                form={form}
+                                setForm={setForm}
+                                loading={loading}
+                                isComplete={isSubstanceStepComplete}
+                                onNext={() => setStep(5)}
+                                onBack={() => setStep(3)}
+                                toggleSubstance={toggleSubstance}
+                            />
                         )}
-
+                       
                         {/* STEP 5 – REVIEW & CONFIRM */}
                         {step === 5 && (
-                            <StepTransition>
-                                <section className="space-y-6">
-                                    <div className="space-y-4">
-                                        <div>
-                                            <h2 className="text-sm font-semibold text-gray-900">
-                                                Basic info
-                                            </h2>
-                                            <dl className="mt-2 space-y-1 text-sm text-gray-700">
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Name</dt>
-                                                    <dd className="text-right">
-                                                        {[form.firstName, form.lastName]
-                                                            .filter(Boolean)
-                                                            .join(" ") || "Not provided"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Date of birth</dt>
-                                                    <dd className="text-right">
-                                                        {form.dob || "Not provided"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Phone</dt>
-                                                    <dd className="text-right">
-                                                        {form.phone || "Not provided"}
-                                                    </dd>
-                                                </div>
-                                            </dl>
-                                        </div>
-
-                                        <div>
-                                            <h2 className="text-sm font-semibold text-gray-900">
-                                                Housing / location
-                                            </h2>
-                                            <dl className="mt-2 space-y-1 text-sm text-gray-700">
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Current location</dt>
-                                                    <dd className="text-right">
-                                                        {form.currentLocation || "Not provided"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">
-                                                        Where you slept last night
-                                                    </dt>
-                                                    <dd className="text-right">
-                                                        {form.sleptLastNight || "Not provided"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Currently homeless</dt>
-                                                    <dd className="text-right">
-                                                        {form.isCurrentlyHomeless || "Not provided"}
-                                                    </dd>
-                                                </div>
-                                            </dl>
-                                        </div>
-
-                                        <div>
-                                            <h2 className="text-sm font-semibold text-gray-900">
-                                                Substance &amp; treatment snapshot
-                                            </h2>
-                                            <dl className="mt-2 space-y-1 text-sm text-gray-700">
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">
-                                                        Substances (last 30 days)
-                                                    </dt>
-                                                    <dd className="text-right">
-                                                        {form.substances && form.substances.length > 0
-                                                            ? form.substances.join(", ")
-                                                            : "Not provided"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Last use</dt>
-                                                    <dd className="text-right">
-                                                        {form.lastUse || "Not provided"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Frequency</dt>
-                                                    <dd className="text-right">
-                                                        {form.frequency || "Not provided"}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Prior treatment</dt>
-                                                    <dd className="text-right">
-                                                        {form.priorTreatment === "yes"
-                                                            ? "Yes"
-                                                            : form.priorTreatment === "no"
-                                                                ? "No"
-                                                                : "Not provided"}
-                                                    </dd>
-                                                </div>
-                                            </dl>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-900">
-                                            Please type your initials to confirm this information is
-                                            accurate
-                                        </label>
-                                        <Input
-                                            className="mt-1 w-24"
-                                            value={form.initials}
-                                            onChange={(e) =>
-                                                setForm((prev) => ({
-                                                    ...prev,
-                                                    initials: e.target.value.toUpperCase(),
-                                                }))
-                                            }
-                                            maxLength={4}
-                                        />
-                                    </div>
-
-                                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-between">
-                                        {/* Back button (both desktop + mobile) */}
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(4)}
-                                            className="inline-flex items-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200"
-                                        >
-                                            Back
-                                        </button>
-
-                                        {/* Desktop primary — Get recommendation */}
-                                        <div className="hidden sm:block">
-                                            <button
-                                                type="button"
-                                                onClick={handleSubmit}
-                                                disabled={loading}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-gray-900"
-                                            >
-                                                {loading ? "Submitting..." : "Get recommendation"}
-                                            </button>
-                                        </div>
-
-                                        {/* Mobile sticky primary — Get recommendation */}
-                                        <StickyActionBar>
-                                            <button
-                                                type="button"
-                                                onClick={handleSubmit}
-                                                disabled={loading}
-                                                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-gray-900"
-                                            >
-                                                {loading ? "Submitting..." : "Get recommendation"}
-                                            </button>
-                                        </StickyActionBar>
-                                    </div>
-                                </section>
-                            </StepTransition>
+                            <Step5Review
+                                form={form}
+                                setForm={setForm}
+                                loading={loading}
+                                onBack={() => setStep(4)}
+                                onGetRecommendation={handleSubmit}
+                            />
                         )}
 
                         {/* STEP 6 – SUMMARY & RECOMMENDATION */}
