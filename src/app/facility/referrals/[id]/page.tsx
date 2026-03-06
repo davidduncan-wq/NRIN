@@ -110,12 +110,14 @@ export default function ReferralDetailPage() {
                         phone: patientRow.phone ?? null,
                     });
                     // 3. Load facility sites
-                    const { data: facilitySites = [] } = await supabase
+                    const { data, error } = await supabase
                         .from("facility_sites")
                         .select("id, name")
                         .order("name", { ascending: true });
 
-                    setFacilitySites(facilitySites);
+                    if (!error && data) {
+                        setFacilitySites(data);
+                    }
                 }
             }
 
