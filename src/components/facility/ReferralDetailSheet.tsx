@@ -305,10 +305,7 @@ export default function ReferralDetailSheet({
                                     disabled={isUpdatingStatus || isCurrent}
                                     onClick={() => onChangeStatus(status)}
                                 >
-                                    <div className="flex w-full items-center justify-between">
-                                        <span>{statusLabel(status)}</span>
-                                        {isCurrent && <CheckIcon />}
-                                    </div>
+                                    <span>{statusLabel(status)}</span>
                                 </ChoiceButton>
                             );
                         })}
