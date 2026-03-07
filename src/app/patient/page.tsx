@@ -118,6 +118,11 @@ export type FormState = {
 
     currentLocation: string; // "Where are you now?"
     sleptLastNight: string;
+
+    sleptAtHome: boolean | null;
+    sleptLocationType: string;
+    sleptLocationOther: string;
+
     isCurrentlyHomeless: string;
     lastKnownAddress: string;
     hasAddressYouCanUse: string;
@@ -160,6 +165,11 @@ const initialFormState: FormState = {
 
     currentLocation: "",
     sleptLastNight: "",
+
+    sleptAtHome: null,
+    sleptLocationType: "",
+    sleptLocationOther: "",
+    
     isCurrentlyHomeless: "",
     lastKnownAddress: "",
     hasAddressYouCanUse: "",
@@ -201,9 +211,11 @@ export default function PatientIntakePage() {
         !!form.address && !!form.city && !!form.state && !!form.zip;
 
     const isHousingStepComplete =
-        !!form.currentLocation.trim() &&
-        !!form.sleptLastNight &&
-        !!form.isCurrentlyHomeless;
+        form.sleptAtHome === true ||
+        (form.sleptAtHome === false &&
+            form.sleptLocationType !== "" &&
+            (form.sleptLocationType !== "other" ||
+                form.sleptLocationOther.trim() !== ""));
 
     const isSubstanceStepComplete =
         form.substances.length > 0 && !!form.lastUse && !!form.frequency;
@@ -286,6 +298,7 @@ export default function PatientIntakePage() {
 
             // 1) Create patient
             const patientPayload: any = {
+
                 first_name: form.firstName || null,
                 last_name: form.lastName || null,
                 date_of_birth: isoDob,
@@ -305,7 +318,7 @@ export default function PatientIntakePage() {
                 withdrawal_risk: null,
                 last_use_date: null,
             };
-
+            console.log("patientPayload", patientPayload);
             const {
                 data: patientData,
                 error: patientError,
@@ -316,7 +329,8 @@ export default function PatientIntakePage() {
                 .single();
 
             if (patientError || !patientData) {
-                console.error("Error inserting patient:", patientError || "no data");
+                console.error("Error inserting patient:", patientError);
+                console.error("Patient payload:", patientPayload);
                 alert("We couldn't save your information. Please try again.");
                 return;
             }
@@ -340,11 +354,14 @@ export default function PatientIntakePage() {
             }
 
             // 3) Create referral
-            const { error: referralError } = await supabase.from("referrals").insert({
-                patient_id: patientId,
-                referral_source: "self",
-                status: "new",
-            });
+            const { error: referralError } = await supabase.from("referrals").insert([
+                {
+                    patient_id: patientId,
+                    status: "new",
+
+                    facility_site_id: facilitySiteId
+                }
+            ]);
 
             if (referralError) {
                 console.error("Error inserting referral:", referralError);
@@ -513,7 +530,7 @@ export default function PatientIntakePage() {
                                 toggleSubstance={toggleSubstance}
                             />
                         )}
-                       
+
                         {/* STEP 5 – REVIEW & CONFIRM */}
                         {step === 5 && (
                             <Step5Review
