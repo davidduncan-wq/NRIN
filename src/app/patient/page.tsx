@@ -337,7 +337,30 @@ export default function PatientIntakePage() {
 
             const patientId: string = patientData.id;
 
-            // 2) Pick a default facility (first facility_sites row)
+            // 2) Create case
+            const { data: caseData, error: caseError } = await supabase
+                .from("cases")
+                .insert([
+                    {
+                        patient_id: patientId,
+                        state: "NEW_INTAKE",
+                    },
+                ])
+                .select("id")
+                .single();
+
+            if (caseError || !caseData) {
+                console.error("Error inserting case:", caseError);
+                alert(
+                    `We saved your patient record, but couldn't create the case.\n\n` +
+                    `Supabase says: ${caseError?.message ?? "No case row was returned."}`
+                );
+                return;
+            }
+
+            const caseId: string = caseData.id;
+
+            // 3) Pick a default facility (first facility_sites row)
             let facilitySiteId: string | null = null;
 
             const {
@@ -353,14 +376,14 @@ export default function PatientIntakePage() {
                 facilitySiteId = (facilityData[0] as { id: string }).id;
             }
 
-            // 3) Create referral
+                   // 4) Create referral
             const { error: referralError } = await supabase.from("referrals").insert([
                 {
                     patient_id: patientId,
+                    case_id: caseId,
                     status: "new",
-
-                    facility_site_id: facilitySiteId
-                }
+                    facility_site_id: facilitySiteId,
+                },
             ]);
 
             if (referralError) {
