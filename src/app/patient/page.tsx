@@ -169,7 +169,7 @@ const initialFormState: FormState = {
     sleptAtHome: null,
     sleptLocationType: "",
     sleptLocationOther: "",
-    
+
     isCurrentlyHomeless: "",
     lastKnownAddress: "",
     hasAddressYouCanUse: "",
@@ -402,10 +402,10 @@ export default function PatientIntakePage() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-10 md:flex-row">
+            <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 md:flex-row">
                 {/* Progress rail (top on mobile, sidebar on desktop) */}
                 <aside className="order-1 md:order-none md:w-64 md:shrink-0">
-                    <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
+                    <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-6 md:p-7">
                         <h2 className="text-sm font-semibold text-gray-900">
                             Intake progress
                         </h2>
@@ -413,15 +413,15 @@ export default function PatientIntakePage() {
                             You can tap a step to jump back and edit.
                         </p>
 
-                        <ol className="mt-4 grid gap-2 sm:gap-3">
+                        <ol className="mt-4 grid gap-3 sm:gap-3">
                             {stepsMeta.map((s) => (
                                 <li key={s.id}>
                                     <button
                                         type="button"
                                         onClick={() => setStep(s.id)}
-                                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${step === s.id
+                                        className={`flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm transition ${step === s.id
                                             ? "bg-gray-900 text-white shadow-sm"
-                                            : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
+                                            : "bg-white text-gray-600 ring-1 ring-gray-100 hover:bg-gray-50"
                                             }`}
                                     >
                                         <div className="flex flex-col">
@@ -443,7 +443,7 @@ export default function PatientIntakePage() {
                     <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-6 md:p-8">
                         {/* Step header */}
                         {activeStep && (
-                            <header className="mb-5 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
+                            <header className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                                         Step {activeStep.id} of 6
@@ -546,129 +546,174 @@ export default function PatientIntakePage() {
                         {step === 6 && result && (
                             <StepTransition>
                                 <section className="space-y-6">
-                                    <div className="grid gap-6 md:grid-cols-2">
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                         {/* Left card: Your information */}
-                                        <div className="space-y-4">
-                                            <h2 className="text-sm font-semibold text-gray-900">
-                                                Your information
-                                            </h2>
-                                            <dl className="space-y-1 text-sm text-gray-700">
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Name</dt>
-                                                    <dd className="text-right">
-                                                        {[form.firstName, form.lastName]
-                                                            .filter(Boolean)
-                                                            .join(" ")}
-                                                    </dd>
+                                        <div className="rounded-2xl border border-gray-100 bg-white p-4 md:p-5">
+                                            <div className="space-y-4">
+                                                <div className="space-y-1">
+                                                    <h2 className="text-sm font-semibold text-gray-900">
+                                                        Your information
+                                                    </h2>
+                                                    <p className="text-xs text-gray-500">
+                                                        A quick summary of what you shared with us.
+                                                    </p>
                                                 </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Date of birth</dt>
-                                                    <dd className="text-right">{form.dob}</dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">
-                                                        Substances used (last 30 days)
-                                                    </dt>
-                                                    <dd className="text-right">
-                                                        {form.substances.join(", ")}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Last use</dt>
-                                                    <dd className="text-right">{form.lastUse}</dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Use frequency</dt>
-                                                    <dd className="text-right">{form.frequency}</dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Prior treatment</dt>
-                                                    <dd className="text-right">
-                                                        {form.priorTreatment === "yes" ? "Yes" : "No"}
-                                                    </dd>
-                                                </div>
-                                                {form.priorTreatment === "yes" && (
-                                                    <>
-                                                        <div className="flex justify-between gap-4">
-                                                            <dt className="text-gray-500">
-                                                                Last treatment duration
-                                                            </dt>
-                                                            <dd className="text-right">
-                                                                {form.treatmentLastDuration}
-                                                            </dd>
-                                                        </div>
-                                                        <div className="flex justify-between gap-4">
-                                                            <dt className="text-gray-500">
-                                                                Last treatment year
-                                                            </dt>
-                                                            <dd className="text-right">
-                                                                {form.treatmentLastYear}
-                                                            </dd>
-                                                        </div>
-                                                        <div className="flex justify-between gap-4">
-                                                            <dt className="text-gray-500">
-                                                                Treatment facility
-                                                            </dt>
-                                                            <dd className="text-right">
-                                                                {form.treatmentFacility}
-                                                            </dd>
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </dl>
+
+                                                <dl className="space-y-2 text-sm text-gray-700">
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">Name</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {[form.firstName, form.lastName].filter(Boolean).join(" ") ||
+                                                                "Not provided"}
+                                                        </dd>
+                                                    </div>
+
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">Date of birth</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {form.dob || "Not provided"}
+                                                        </dd>
+                                                    </div>
+
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">
+                                                            Substances used (last 30 days)
+                                                        </dt>
+                                                        <dd className="max-w-[60%] text-right text-gray-900">
+                                                            {form.substances.length > 0
+                                                                ? form.substances.join(", ")
+                                                                : "Not provided"}
+                                                        </dd>
+                                                    </div>
+
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">Last use</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {form.lastUse || "Not provided"}
+                                                        </dd>
+                                                    </div>
+
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">Use frequency</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {form.frequency || "Not provided"}
+                                                        </dd>
+                                                    </div>
+
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">Prior treatment</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {form.priorTreatment === "yes"
+                                                                ? "Yes"
+                                                                : form.priorTreatment === "no"
+                                                                    ? "No"
+                                                                    : "Not provided"}
+                                                        </dd>
+                                                    </div>
+
+                                                    {form.priorTreatment === "yes" && (
+                                                        <>
+                                                            <div className="flex items-start justify-between gap-4">
+                                                                <dt className="text-gray-500">
+                                                                    Last treatment duration
+                                                                </dt>
+                                                                <dd className="text-right text-gray-900">
+                                                                    {form.treatmentLastDuration || "Not provided"}
+                                                                </dd>
+                                                            </div>
+
+                                                            <div className="flex items-start justify-between gap-4">
+                                                                <dt className="text-gray-500">
+                                                                    Last treatment year
+                                                                </dt>
+                                                                <dd className="text-right text-gray-900">
+                                                                    {form.treatmentLastYear || "Not provided"}
+                                                                </dd>
+                                                            </div>
+
+                                                            <div className="flex items-start justify-between gap-4">
+                                                                <dt className="text-gray-500">
+                                                                    Treatment facility
+                                                                </dt>
+                                                                <dd className="max-w-[60%] text-right text-gray-900">
+                                                                    {form.treatmentFacility || "Not provided"}
+                                                                </dd>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </dl>
+                                            </div>
                                         </div>
 
                                         {/* Right card: Recommendation */}
-                                        <div className="space-y-4">
-                                            <h2 className="text-sm font-semibold text-gray-900">
-                                                Recommendation
-                                            </h2>
-                                            <dl className="space-y-1 text-sm text-gray-700">
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Withdrawal risk</dt>
-                                                    <dd className="text-right">
-                                                        {result.withdrawalRisk}
-                                                    </dd>
+                                        <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 md:p-5">
+                                            <div className="space-y-4">
+                                                <div className="space-y-1">
+                                                    <h2 className="text-sm font-semibold text-gray-900">
+                                                        Recommendation
+                                                    </h2>
+                                                    <p className="text-xs text-gray-500">
+                                                        Based on what you shared, here is your initial clinical
+                                                        snapshot.
+                                                    </p>
                                                 </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Relapse risk</dt>
-                                                    <dd className="text-right">
-                                                        {result.relapseRisk}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">
-                                                        Co-occurring needs
-                                                    </dt>
-                                                    <dd className="text-right">
-                                                        {result.coOccurring}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">Support level</dt>
-                                                    <dd className="text-right">
-                                                        {result.supportLevel}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <dt className="text-gray-500">
+
+                                                <div className="rounded-xl border border-blue-200 bg-white p-4">
+                                                    <p className="text-xs font-medium uppercase tracking-wide text-blue-700">
                                                         Recommended level of care
-                                                    </dt>
-                                                    <dd className="text-right">
+                                                    </p>
+                                                    <p className="mt-2 text-lg font-semibold text-gray-900">
                                                         {result.recommendedLevelOfCare}
-                                                    </dd>
+                                                    </p>
                                                 </div>
-                                            </dl>
+
+                                                <dl className="space-y-2 text-sm text-gray-700">
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">Withdrawal risk</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {result.withdrawalRisk}
+                                                        </dd>
+                                                    </div>
+
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">Relapse risk</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {result.relapseRisk}
+                                                        </dd>
+                                                    </div>
+
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">Co-occurring needs</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {result.coOccurring}
+                                                        </dd>
+                                                    </div>
+
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <dt className="text-gray-500">Support level</dt>
+                                                        <dd className="text-right text-gray-900">
+                                                            {result.supportLevel}
+                                                        </dd>
+                                                    </div>
+                                                </dl>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-900">
-                                                Enter your initials to confirm accuracy
-                                            </label>
+                                    {/* Confirmation */}
+                                    <section className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 md:p-5">
+                                        <div className="space-y-3">
+                                            <div className="space-y-1">
+                                                <label className="block text-sm font-medium text-gray-900">
+                                                    Enter your initials to confirm accuracy
+                                                </label>
+                                                <p className="text-xs text-gray-500">
+                                                    Please review the summary above before submitting your intake.
+                                                </p>
+                                            </div>
+
                                             <Input
-                                                className="mt-1 w-24"
+                                                className="w-24"
                                                 value={form.initials}
                                                 onChange={(e) =>
                                                     setForm((prev) => ({
@@ -680,42 +725,39 @@ export default function PatientIntakePage() {
                                                 placeholder="ABC"
                                             />
                                         </div>
+                                    </section>
 
-                                        {/* Step 6 — Actions */}
-                                        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
-                                            {/* Back button */}
+                                    {/* Step 6 — Actions */}
+                                    <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <button
+                                            type="button"
+                                            onClick={() => setStep(5)}
+                                            className="inline-flex h-10 items-center rounded-xl bg-gray-100 px-4 text-sm font-medium text-gray-800 transition hover:bg-gray-200"
+                                        >
+                                            Back to review
+                                        </button>
+
+                                        <div className="hidden sm:block">
                                             <button
                                                 type="button"
-                                                onClick={() => setStep(5)}
-                                                className="inline-flex items-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200"
+                                                onClick={handleFinalSubmit}
+                                                disabled={loading}
+                                                className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
                                             >
-                                                Back to review
+                                                {loading ? "Submitting..." : "Submit intake"}
                                             </button>
-
-                                            {/* Desktop primary — Submit intake */}
-                                            <div className="hidden sm:block">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleFinalSubmit}
-                                                    disabled={loading}
-                                                    className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm w-full disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-gray-900"
-                                                >
-                                                    {loading ? "Submitting..." : "Submit intake"}
-                                                </button>
-                                            </div>
-
-                                            {/* Mobile sticky primary — Submit intake */}
-                                            <StickyActionBar>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleFinalSubmit}
-                                                    disabled={loading}
-                                                    className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-base font-semibold text-white shadow-sm w-full disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-gray-900"
-                                                >
-                                                    {loading ? "Submitting..." : "Submit intake"}
-                                                </button>
-                                            </StickyActionBar>
                                         </div>
+
+                                        <StickyActionBar>
+                                            <button
+                                                type="button"
+                                                onClick={handleFinalSubmit}
+                                                disabled={loading}
+                                                className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-black px-6 text-base font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                                            >
+                                                {loading ? "Submitting..." : "Submit intake"}
+                                            </button>
+                                        </StickyActionBar>
                                     </div>
                                 </section>
                             </StepTransition>

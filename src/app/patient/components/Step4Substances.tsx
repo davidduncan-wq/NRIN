@@ -3,7 +3,6 @@
 import * as React from "react";
 import { StepShell } from "./StepShell";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import ChoiceButton from "@/components/ui/ChoiceButton";
 import type { FormState } from "@/app/patient/page";
 
@@ -28,6 +27,33 @@ const substancesList = [
     "inhalants",
 ];
 
+const lastUseOptions = [
+    { value: "today", label: "Today" },
+    { value: "yesterday", label: "Yesterday" },
+    { value: "2-3_days", label: "2–3 days ago" },
+    { value: "4-7_days", label: "4–7 days ago" },
+    { value: "more_than_a_week", label: "More than a week ago" },
+];
+
+const frequencyOptions = [
+    { value: "daily", label: "Daily" },
+    { value: "3-5_days_week", label: "3–5 days / week" },
+    { value: "1-2_days_week", label: "1–2 days / week" },
+    { value: "less_than_once_week", label: "Less than once a week" },
+];
+
+const treatmentWhenOptions = [
+    { value: "0-12_months", label: "0–12 months ago" },
+    { value: "1-5_years", label: "Over 1 year ago" },
+    { value: "5+_years", label: "5+ years ago" },
+];
+
+const treatmentDurationOptions = [
+    { value: "0-7_days", label: "0–7 days" },
+    { value: "7-30_days", label: "7–30 days" },
+    { value: "30+_days", label: "30+ days" },
+];
+
 export function Step4Substances({
     form,
     setForm,
@@ -39,276 +65,281 @@ export function Step4Substances({
 }: Step4Props) {
     return (
         <StepShell>
-            {/* Substances used in the last 30 days */}
-            <section className="space-y-2">
-                <h2 className="text-sm font-semibold text-gray-900">
-                    Substances used in the last 30 days
-                </h2>
-                <p className="text-xs text-gray-500">
-                    Tap all that apply. We&apos;ll use this to match you to the right
-                    level of care.
-                </p>
-                <div className="mt-1 flex flex-wrap gap-2">
-                    {substancesList.map((s) => {
-                        const selected = form.substances.includes(s);
-                        const label = s.charAt(0).toUpperCase() + s.slice(1);
+            <div className="space-y-6">
+                {/* Substances used in the last 30 days */}
+                <section className="space-y-3">
+                    <div className="space-y-1">
+                        <h2 className="text-sm font-semibold text-gray-900">
+                            Substances used in the last 30 days
+                        </h2>
+                        <p className="text-xs text-gray-500">
+                            Tap all that apply. We&apos;ll use this to match you to the right
+                            level of care.
+                        </p>
+                    </div>
 
-                        return (
-                            <button
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                        {substancesList.map((s) => (
+                            <ChoiceButton
                                 key={s}
-                                type="button"
+                                selected={form.substances.includes(s)}
                                 onClick={() => toggleSubstance(s)}
-                                className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${selected
-                                        ? "border-gray-900 bg-gray-900 text-white"
-                                        : "border-gray-200 bg-gray-50 text-gray-800"
-                                    }`}
                             >
-                                {label}
-                            </button>
-                        );
-                    })}
-                </div>
-        </section>
+                                <span className="text-sm">
+                                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                                </span>
+                            </ChoiceButton>
+                        ))}
+                    </div>
+                </section>
 
-      {/* Last use + frequency */ }
-    <section className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-900">
-                Last use
-            </label>
-            <Select
-                value={form.lastUse}
-                onChange={(e) =>
-                    setForm((prev) => ({ ...prev, lastUse: e.target.value }))
-                }
-            >
-                <option value="">Select one</option>
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="2-3_days">2–3 days ago</option>
-                <option value="4-7_days">4–7 days ago</option>
-                <option value="more_than_a_week">More than a week ago</option>
-            </Select>
-        </div>
+                {/* Last use */}
+                <section className="space-y-3">
+                    <label className="text-sm font-medium text-gray-900">
+                        Last use
+                    </label>
 
-        <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-900">
-                Frequency
-            </label>
-            <Select
-                value={form.frequency}
-                onChange={(e) =>
-                    setForm((prev) => ({ ...prev, frequency: e.target.value }))
-                }
-            >
-                <option value="">Select one</option>
-                <option value="daily">Daily</option>
-                <option value="3-5_days_week">3–5 days / week</option>
-                <option value="1-2_days_week">1–2 days / week</option>
-                <option value="less_than_once_week">
-                    Less than once a week
-                </option>
-            </Select>
-        </div>
-    </section>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                        {lastUseOptions.map((option) => (
+                            <ChoiceButton
+                                key={option.value}
+                                selected={form.lastUse === option.value}
+                                onClick={() =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        lastUse: option.value,
+                                    }))
+                                }
+                            >
+                                <span className="text-sm">{option.label}</span>
+                            </ChoiceButton>
+                        ))}
+                    </div>
+                </section>
 
-    {/* Prior treatment yes/no */ }
-    <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-gray-900">
-            Treatment history
-        </h2>
-        <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-900">
-                Have you been to treatment before?
-            </label>
-            <div className="mt-1 flex flex-wrap gap-2">
-                <ChoiceButton
-                    isSelected={form.priorTreatment === "yes"}
-                    onClick={() =>
-                        setForm((prev) => ({ ...prev, priorTreatment: "yes" }))
-                    }
-                >
-                    Yes
-                </ChoiceButton>
-                <ChoiceButton
-                    isSelected={form.priorTreatment === "no"}
-                    onClick={() =>
-                        setForm((prev) => ({
-                            ...prev,
-                            priorTreatment: "no",
-                            treatmentLastWhen: "",
-                            treatmentLastDuration: "",
-                            treatmentPHPCompleted: "",
-                            treatmentIOPCompleted: "",
-                            treatmentLastYear: "",
-                            treatmentFacility: "",
-                        }))
-                    }
-                >
-                    No
-                </ChoiceButton>
-            </div>
-        </div>
-    </section>
+                {/* Frequency */}
+                <section className="space-y-3">
+                    <label className="text-sm font-medium text-gray-900">
+                        Frequency
+                    </label>
 
-    {
-        form.priorTreatment === "yes" && (
-            <section className="space-y-4">
-                {/* When + how long */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-gray-900">
-                            When were you last in treatment?
-                        </label>
-                        <Select
-                            value={form.treatmentLastWhen}
-                            onChange={(e) =>
+                    <div className="grid grid-cols-2 gap-2">
+                        {frequencyOptions.map((option) => (
+                            <ChoiceButton
+                                key={option.value}
+                                selected={form.frequency === option.value}
+                                onClick={() =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        frequency: option.value,
+                                    }))
+                                }
+                            >
+                                <span className="text-sm">{option.label}</span>
+                            </ChoiceButton>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Treatment history */}
+                <section className="space-y-3">
+                    <label className="text-sm font-medium text-gray-900">
+                        Have you been to treatment before?
+                    </label>
+
+                    <div className="grid grid-cols-1 gap-2">
+                        <ChoiceButton
+                            selected={form.priorTreatment === "yes"}
+                            onClick={() =>
+                                setForm((prev) => ({ ...prev, priorTreatment: "yes" }))
+                            }
+                        >
+                            Yes
+                        </ChoiceButton>
+
+                        <ChoiceButton
+                            selected={form.priorTreatment === "no"}
+                            onClick={() =>
                                 setForm((prev) => ({
                                     ...prev,
-                                    treatmentLastWhen: e.target.value,
+                                    priorTreatment: "no",
+                                    treatmentLastWhen: "",
+                                    treatmentLastDuration: "",
+                                    treatmentPHPCompleted: "",
+                                    treatmentIOPCompleted: "",
+                                    treatmentLastYear: "",
+                                    treatmentFacility: "",
                                 }))
                             }
                         >
-                            <option value="">Select one</option>
-                            <option value="0-12_months">0–12 months ago</option>
-                            <option value="1-5_years">Over 1 year ago</option>
-                            <option value="5+_years">5+ years ago</option>
-                        </Select>
+                            No
+                        </ChoiceButton>
                     </div>
+                </section>
 
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-gray-900">
-                            How long were you in treatment?
-                        </label>
-                        <Select
-                            value={form.treatmentLastDuration}
-                            onChange={(e) =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    treatmentLastDuration: e.target.value,
-                                }))
-                            }
-                        >
-                            <option value="">Select one</option>
-                            <option value="0-7_days">0–7 days</option>
-                            <option value="7-30_days">7–30 days</option>
-                            <option value="30+_days">30+ days</option>
-                        </Select>
-                    </div>
-                </div>
-
-                {form.treatmentLastDuration === "30+_days" && (
-                    <div className="space-y-4">
-                        {/* Programs completed */}
-                        <div className="space-y-1">
+                {/* Conditional treatment details */}
+                {form.priorTreatment === "yes" && (
+                    <section className="space-y-5 rounded-2xl border border-gray-100 bg-gray-50/50 p-4 md:p-5">
+                        <div className="space-y-3">
                             <label className="text-sm font-medium text-gray-900">
-                                Programs completed
+                                When were you last in treatment?
                             </label>
-                            <div className="mt-1 flex flex-wrap gap-2">
-                                <ChoiceButton
-                                    isSelected={form.treatmentPHPCompleted === "yes"}
-                                    onClick={() =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            treatmentPHPCompleted: "yes",
-                                        }))
-                                    }
-                                >
-                                    Completed PHP
-                                </ChoiceButton>
-                                <ChoiceButton
-                                    isSelected={form.treatmentPHPCompleted === "no"}
-                                    onClick={() =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            treatmentPHPCompleted: "no",
-                                        }))
-                                    }
-                                >
-                                    Didn&apos;t complete PHP
-                                </ChoiceButton>
-                                <ChoiceButton
-                                    isSelected={form.treatmentIOPCompleted === "yes"}
-                                    onClick={() =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            treatmentIOPCompleted: "yes",
-                                        }))
-                                    }
-                                >
-                                    Completed IOP
-                                </ChoiceButton>
-                                <ChoiceButton
-                                    isSelected={form.treatmentIOPCompleted === "no"}
-                                    onClick={() =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            treatmentIOPCompleted: "no",
-                                        }))
-                                    }
-                                >
-                                    Didn&apos;t complete IOP
-                                </ChoiceButton>
+
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                {treatmentWhenOptions.map((option) => (
+                                    <ChoiceButton
+                                        key={option.value}
+                                        selected={form.treatmentLastWhen === option.value}
+                                        onClick={() =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                treatmentLastWhen: option.value,
+                                            }))
+                                        }
+                                    >
+                                        <span className="text-sm">{option.label}</span>
+                                    </ChoiceButton>
+                                ))}
                             </div>
                         </div>
 
-                        {/* Year & facility */}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-gray-900">
-                                    What year was that? (YYYY)
-                                </label>
-                                <Input
-                                    value={form.treatmentLastYear}
-                                    onChange={(e) =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            treatmentLastYear: e.target.value,
-                                        }))
-                                    }
-                                />
-                            </div>
+                        <div className="space-y-3">
+                            <label className="text-sm font-medium text-gray-900">
+                                How long were you in treatment?
+                            </label>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-gray-900">
-                                    Where was that treatment?
-                                </label>
-                                <Input
-                                    value={form.treatmentFacility}
-                                    onChange={(e) =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            treatmentFacility: e.target.value,
-                                        }))
-                                    }
-                                />
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                {treatmentDurationOptions.map((option) => (
+                                    <ChoiceButton
+                                        key={option.value}
+                                        selected={form.treatmentLastDuration === option.value}
+                                        onClick={() =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                treatmentLastDuration: option.value,
+                                            }))
+                                        }
+                                    >
+                                        <span className="text-sm">{option.label}</span>
+                                    </ChoiceButton>
+                                ))}
                             </div>
                         </div>
-                    </div>
+
+                        {form.treatmentLastDuration === "30+_days" && (
+                            <div className="space-y-5 rounded-xl border border-gray-200 bg-white p-4">
+                                <div className="space-y-3">
+                                    <label className="text-sm font-medium text-gray-900">
+                                        Programs completed
+                                    </label>
+
+                                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                        <ChoiceButton
+                                            selected={form.treatmentPHPCompleted === "yes"}
+                                            onClick={() =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    treatmentPHPCompleted: "yes",
+                                                }))
+                                            }
+                                        >
+                                            Completed PHP
+                                        </ChoiceButton>
+
+                                        <ChoiceButton
+                                            selected={form.treatmentPHPCompleted === "no"}
+                                            onClick={() =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    treatmentPHPCompleted: "no",
+                                                }))
+                                            }
+                                        >
+                                            Didn&apos;t complete PHP
+                                        </ChoiceButton>
+
+                                        <ChoiceButton
+                                            selected={form.treatmentIOPCompleted === "yes"}
+                                            onClick={() =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    treatmentIOPCompleted: "yes",
+                                                }))
+                                            }
+                                        >
+                                            Completed IOP
+                                        </ChoiceButton>
+
+                                        <ChoiceButton
+                                            selected={form.treatmentIOPCompleted === "no"}
+                                            onClick={() =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    treatmentIOPCompleted: "no",
+                                                }))
+                                            }
+                                        >
+                                            Didn&apos;t complete IOP
+                                        </ChoiceButton>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-900">
+                                            What year was that? (YYYY)
+                                        </label>
+                                        <Input
+                                            value={form.treatmentLastYear}
+                                            onChange={(e) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    treatmentLastYear: e.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-900">
+                                            Where was that treatment?
+                                        </label>
+                                        <Input
+                                            value={form.treatmentFacility}
+                                            onChange={(e) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    treatmentFacility: e.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </section>
                 )}
-            </section>
-        )
-    }
 
-    {/* Actions */ }
-    <div className="mt-6 flex items-center justify-between">
-        <button
-            type="button"
-            onClick={onBack}
-            className="text-sm font-medium text-gray-700 underline-offset-2 hover:underline"
-        >
-            Back
-        </button>
+                {/* Actions */}
+                <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                        type="button"
+                        onClick={onBack}
+                        className="inline-flex h-10 items-center rounded-xl bg-gray-100 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-200"
+                    >
+                        Back
+                    </button>
 
-        <button
-            type="button"
-            onClick={onNext}
-            disabled={!isComplete || loading}
-            className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-            Review &amp; confirm
-        </button>
-    </div>
-    </StepShell >
-  );
+                    <button
+                        type="button"
+                        onClick={onNext}
+                        disabled={!isComplete || loading}
+                        className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        Review &amp; confirm
+                    </button>
+                </div>
+            </div>
+        </StepShell>
+    );
 }
