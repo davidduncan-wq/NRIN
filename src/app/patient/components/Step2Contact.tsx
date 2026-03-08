@@ -61,7 +61,6 @@ export function Step2Contact({
       setZipLookupLoading(true);
 
       const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
-
       if (!response.ok) return;
 
       const data = await response.json();
@@ -69,11 +68,18 @@ export function Step2Contact({
 
       if (!place) return;
 
+      const latitude =
+        place.latitude !== undefined ? Number(place.latitude) : null;
+      const longitude =
+        place.longitude !== undefined ? Number(place.longitude) : null;
+
       setForm((prev) => ({
         ...prev,
         zip,
         city: place["place name"] ?? prev.city,
         state: place["state abbreviation"] ?? prev.state,
+        addressLatitude: Number.isFinite(latitude) ? latitude : null,
+        addressLongitude: Number.isFinite(longitude) ? longitude : null,
       }));
     } catch (error) {
       console.error("ZIP lookup failed:", error);
@@ -117,7 +123,9 @@ export function Step2Contact({
               maxLength={5}
             />
             <p className="min-h-[20px] text-xs text-gray-500">
-              {zipLookupLoading ? "Looking up city and state..." : "Enter ZIP first to auto-fill city and state."}
+              {zipLookupLoading
+                ? "Looking up city and state..."
+                : "Enter ZIP first to auto-fill city and state."}
             </p>
           </div>
 

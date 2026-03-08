@@ -10,6 +10,12 @@ Before doing ANYTHING you must read these files in order:
 4. project_brain/NRIN_CANONICAL_STATE.md
 5. project_brain/NRIN_CURRENT_PRIORITIES.md
 6. project_brain/NRIN_SURGICAL_EDIT_RULES.md
+7. project_brain/NEXT_BUILD_TARGET.md
+8. project_brain/DECISION_LOG.md
+9. project_brain/NRIN_DESIGN_SYSTEM.md
+10. NRIN_PRODUCT_ARCHITECTURE.md
+11. NRIN_PRODUCT_VISION.md
+12. PROJECT_INDEX.md
 
 GitHub is the canonical source of truth.
 

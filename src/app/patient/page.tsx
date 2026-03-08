@@ -115,6 +115,8 @@ export type FormState = {
     city: string;
     state: string;
     zip: string;
+    addressLatitude: number | null;
+    addressLongitude: number | null;
 
     currentLocation: string; // "Where are you now?"
     sleptLastNight: string;
@@ -162,6 +164,8 @@ const initialFormState: FormState = {
     city: "",
     state: "",
     zip: "",
+    addressLatitude: null,
+    addressLongitude: null,
 
     currentLocation: "",
     sleptLastNight: "",
@@ -309,6 +313,8 @@ export default function PatientIntakePage() {
                 city: form.city || null,
                 state: form.state || null,
                 postal_code: form.zip || null,
+                address_latitude: form.addressLatitude,
+                address_longitude: form.addressLongitude,
                 current_location_description: form.currentLocation || null,
                 housing_status: form.isCurrentlyHomeless || null,
                 homeless_last_night: form.sleptLastNight || null,
@@ -376,7 +382,7 @@ export default function PatientIntakePage() {
                 facilitySiteId = (facilityData[0] as { id: string }).id;
             }
 
-                   // 4) Create referral
+            // 4) Create referral
             const { error: referralError } = await supabase.from("referrals").insert([
                 {
                     patient_id: patientId,
