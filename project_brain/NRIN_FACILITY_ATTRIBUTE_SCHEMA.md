@@ -1,0 +1,147 @@
+NRIN Facility Attribute Schema
+Purpose
+This document defines the canonical attribute structure used to describe treatment centers inside NRIN.
+These attributes power:
+facility crawling
+facility onboarding dashboards
+patient matching algorithms
+recommendation cards
+All facility data sources (crawler, manual entry, admin review) must map to this schema.
+Core Facility Identity
+Basic identifying information.
+facility_id
+facility_name
+city
+state
+country
+website_url
+phone_number
+admissions_contact
+Accreditation & Verification
+Trust and regulatory signals.
+joint_commission_accredited
+carf_accredited
+state_licensed
+legitscript_certified
+nr_in_verified
+verification_status
+verification_notes
+verification_documents
+Program Levels
+Treatment levels offered by the facility.
+offers_detox
+offers_residential
+offers_php
+offers_iop
+offers_outpatient
+offers_aftercare
+Facilities offering multiple levels may be tagged:
+continuum_of_care_score
+This indicates ability to support step-down recovery.
+Clinical Specialties
+Common clinical focus areas.
+dual_diagnosis_support
+trauma_informed_care
+mat_supported
+chronic_relapse_program
+medical_detox_capability
+Populations Served
+Demographic or specialty patient groups.
+young_adults_program
+women_only_program
+men_only_program
+lgbtq_affirming
+veterans_program
+first_responder_program
+executive_program
+professional_program
+Professional Monitoring Support
+Facilities familiar with licensing or monitoring systems.
+healthcare_professionals_track
+aviation_recovery_program
+legal_professionals_program
+licensing_board_experience
+diversion_program_support
+Family Support Programs
+Family-related recovery services.
+family_therapy_program
+family_weekend_program
+child_visitation_support
+couples_therapy_available
+family_reunification_support
+Housing & Reintegration Support
+Programs supporting life stability after treatment.
+sober_living_transition
+transitional_housing
+recovery_residence_affiliation
+employment_support
+benefits_navigation
+case_management_services
+Work-Compatible Programs
+Programs designed for working adults.
+evening_iop
+remote_participation
+work_compatible_program
+executive_schedule_support
+Insurance
+Insurance compatibility.
+accepted_insurance_providers
+insurance_verification_required
+self_pay_available
+financing_options_available
+Detected vs verified insurance should be stored separately.
+Facility Operational Status
+Operational readiness signals.
+accepting_patients_now
+accepting_patients_later
+accepting_date
+not_accepting_patients
+current_capacity_status
+Marketing Profile
+Public-facing description used in recommendations.
+website_raw_copy
+ai_generated_summary
+facility_override_summary
+admin_verified_summary
+Recommendation cards should prefer:
+admin_verified_summary
+→ facility_override_summary
+→ ai_generated_summary
+Program Philosophy Tags
+High-level program identity.
+12_step_oriented
+faith_based_program
+holistic_program
+evidence_based_program
+medically_focused_program
+Narrative-Derived Matching Signals
+These attributes are derived from patient narrative analysis.
+Facilities may support certain motivations.
+career_recovery_support
+family_reunification_support
+environment_escape_suitable
+identity_rebuild_support
+Crawler Evidence Fields
+Every crawler extraction should record evidence.
+source_url
+text_snippet
+confidence_score
+last_crawled_at
+This ensures transparency and allows manual verification.
+Future Expansion
+Future schema layers may include:
+recovery_housing_networks
+employment_pipeline_programs
+long_term_recovery_communities
+government_supported_programs
+These will support initiatives such as large-scale recovery housing and workforce reintegration programs.
+Design Principle
+Facility attributes must support context-aware matching.
+Matching considers:
+clinical needs
+family context
+career pressures
+housing stability
+motivation signals
+program continuum
+Facilities should therefore be described using attributes that reflect real recovery support, not just marketing claims.
