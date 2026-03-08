@@ -1,3 +1,4 @@
+
 # NRIN — PRODUCT ARCHITECTURE
 Working product architecture for NRIN after patient intake completion.
 
