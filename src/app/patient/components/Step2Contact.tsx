@@ -36,6 +36,8 @@ export function Step2Contact({
   onNext,
   onBack,
 }: Step2Props) {
+  const [zipLookupLoading, setZipLookupLoading] = React.useState(false);
+
   const isComplete = Boolean(
     form.address &&
       form.city &&
@@ -44,6 +46,41 @@ export function Step2Contact({
       form.sexAtBirth &&
       form.genderIdentity
   );
+
+  const handleZipChange = async (value: string) => {
+    const zip = value.replace(/\D/g, "").slice(0, 5);
+
+    setForm((prev) => ({
+      ...prev,
+      zip,
+    }));
+
+    if (zip.length !== 5) return;
+
+    try {
+      setZipLookupLoading(true);
+
+      const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const place = data?.places?.[0];
+
+      if (!place) return;
+
+      setForm((prev) => ({
+        ...prev,
+        zip,
+        city: place["place name"] ?? prev.city,
+        state: place["state abbreviation"] ?? prev.state,
+      }));
+    } catch (error) {
+      console.error("ZIP lookup failed:", error);
+    } finally {
+      setZipLookupLoading(false);
+    }
+  };
 
   return (
     <StepShell
@@ -70,7 +107,21 @@ export function Step2Contact({
             />
           </div>
 
-          <div className="space-y-2 md:col-span-8">
+          <div className="space-y-2 md:col-span-4">
+            <label className="text-sm font-medium text-gray-900">ZIP</label>
+            <Input
+              value={form.zip}
+              onChange={(e) => void handleZipChange(e.target.value)}
+              autoComplete="postal-code"
+              inputMode="numeric"
+              maxLength={5}
+            />
+            <p className="min-h-[20px] text-xs text-gray-500">
+              {zipLookupLoading ? "Looking up city and state..." : "Enter ZIP first to auto-fill city and state."}
+            </p>
+          </div>
+
+          <div className="space-y-2 md:col-span-5">
             <label className="text-sm font-medium text-gray-900">City</label>
             <Input
               value={form.city}
@@ -84,7 +135,7 @@ export function Step2Contact({
             />
           </div>
 
-          <div className="space-y-2 md:col-span-4">
+          <div className="space-y-2 md:col-span-3">
             <label className="text-sm font-medium text-gray-900">State</label>
             <Input
               value={form.state}
@@ -95,20 +146,6 @@ export function Step2Contact({
                 }))
               }
               autoComplete="address-level1"
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-3">
-            <label className="text-sm font-medium text-gray-900">ZIP</label>
-            <Input
-              value={form.zip}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  zip: e.target.value,
-                }))
-              }
-              autoComplete="postal-code"
             />
           </div>
         </div>
