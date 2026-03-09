@@ -1,11 +1,11 @@
 {
   "attempted": 39,
-  "content_detected": 20,
-  "soft_404_present": 14,
+  "content_detected": 33,
+  "soft_404_present": 1,
   "security_block": 1,
   "dns_failure": 2,
   "fetch_failure": 1,
   "no_structured_signals": 1,
   "with_program_detections": 34,
-  "with_insurance_detections": 17
+  "with_insurance_detections": 20
 }

@@ -6,7 +6,7 @@ import { extractTitle, stripHtmlToText } from "./stripHtml"
 const execFileAsync = promisify(execFile)
 
 const MAX_SELECTED_PAGES = 5
-const MAX_PRELIMINARY_PAGES = 8
+const MAX_PRELIMINARY_PAGES = 12
 const HOMEPAGE_PATH = "/"
 
 const FALLBACK_CANDIDATE_PATHS = [
@@ -42,6 +42,13 @@ type CandidateLink = {
     anchorText: string
     score: number
     buckets: CandidateBucket[]
+}
+type FetchedCandidate = {
+    page: CrawlPageResult
+    contentScore: number
+    finalScore: number
+    buckets: CandidateBucket[]
+    discoveredFromHomepage: boolean
 }
 
 const CLINICAL_KEYWORDS = [
@@ -136,7 +143,30 @@ export async function fetchPages(rootUrl: string): Promise<CrawlPageResult[]> {
         return pages
     }
 
-    const discoveredCandidateLinks = extractCandidateLinks(homepageHtml, homepageUrl)
+    const homepageCandidateLinks = extractCandidateLinks(homepageHtml, homepageUrl)
+
+    const secondHopSeedUrls = homepageCandidateLinks
+        .map((candidate) => candidate.url)
+        .filter((url) => url !== homepageUrl)
+        .slice(0, 2)
+
+    const secondHopCandidateLinks: CandidateLink[] = []
+
+    for (const seedUrl of secondHopSeedUrls) {
+        try {
+            const seedHtml = await fetchHtmlWithCurl(seedUrl)
+            const seedLinks = extractCandidateLinks(seedHtml, homepageUrl)
+            secondHopCandidateLinks.push(...seedLinks)
+        } catch {
+            // ignore second-hop seed failures
+        }
+    }
+
+    const discoveredCandidateLinks = mergeCandidateLinks(
+        homepageCandidateLinks,
+        secondHopCandidateLinks,
+    )
+
     const fallbackCandidateLinks = buildFallbackCandidateLinks(homepageUrl)
     const candidateLinks = mergeCandidateLinks(discoveredCandidateLinks, fallbackCandidateLinks)
     const preliminaryUrls = selectUrlsForCoverage(
@@ -145,10 +175,11 @@ export async function fetchPages(rootUrl: string): Promise<CrawlPageResult[]> {
         MAX_PRELIMINARY_PAGES,
     )
 
-    const fetchedCandidates: Array<{
-        page: CrawlPageResult
-        contentScore: number
-    }> = []
+
+    const discoveredUrlSet = new Set(discoveredCandidateLinks.map((candidate) => candidate.url))
+    const candidateLookup = new Map(candidateLinks.map((candidate) => [candidate.url, candidate]))
+
+    const fetchedCandidates: FetchedCandidate[] = []
 
     for (const url of preliminaryUrls) {
         if (url === homepageUrl) continue
@@ -156,14 +187,33 @@ export async function fetchPages(rootUrl: string): Promise<CrawlPageResult[]> {
         try {
             const rawHtml = await fetchHtmlWithCurl(url)
 
-            if (isLikelyBadFallbackPage(url, rawHtml, homepageUrl, candidateLinks)) {
+            if (isLikelyBadFallbackPage(url, rawHtml, homepageUrl, discoveredUrlSet)) {
                 continue
             }
 
             const page = buildSuccessPage(url, rawHtml)
-            const contentScore = scoreFetchedPageContent(page.rawText, page.title ?? "", url)
+            const candidate = candidateLookup.get(url)
 
-            fetchedCandidates.push({ page, contentScore })
+            const buckets =
+                candidate?.buckets.length ? candidate.buckets : classifyBuckets(url, page.title ?? "")
+
+            const discoveredFromHomepage = discoveredUrlSet.has(url)
+            const contentScore = scoreFetchedPageContent(page.rawText, page.title ?? "", url, buckets)
+            const finalScore = computeFinalFetchedScore(
+                contentScore,
+                candidate?.score ?? 0,
+                buckets,
+                discoveredFromHomepage,
+                page,
+            )
+
+            fetchedCandidates.push({
+                page,
+                contentScore,
+                finalScore,
+                buckets,
+                discoveredFromHomepage,
+            })
         } catch (error) {
             pages.push(buildErrorPage(url, error))
         }
@@ -283,21 +333,16 @@ function buildFallbackCandidateLinks(homepageUrl: string): CandidateLink[] {
     }).filter((candidate) => candidate.buckets.length > 0)
 }
 
-function mergeCandidateLinks(
-    discovered: CandidateLink[],
-    fallback: CandidateLink[],
-): CandidateLink[] {
+function mergeCandidateLinks(...groups: CandidateLink[][]): CandidateLink[] {
     const merged = new Map<string, CandidateLink>()
 
-    for (const candidate of fallback) {
-        merged.set(candidate.url, candidate)
-    }
+    for (const group of groups) {
+        for (const candidate of group) {
+            const existing = merged.get(candidate.url)
 
-    for (const candidate of discovered) {
-        const existing = merged.get(candidate.url)
-
-        if (!existing || candidate.score >= existing.score) {
-            merged.set(candidate.url, candidate)
+            if (!existing || candidate.score >= existing.score) {
+                merged.set(candidate.url, candidate)
+            }
         }
     }
 
@@ -473,37 +518,33 @@ function isLikelyBadFallbackPage(
     url: string,
     rawHtml: string,
     homepageUrl: string,
-    candidateLinks: CandidateLink[],
+    discoveredUrlSet: Set<string>,
 ): boolean {
-    const discoveredUrls = new Set(
-        extractCandidateLinks(rawHtml, homepageUrl).map((candidate) => candidate.url),
-    )
-
-    const wasDiscoveredFromHomepage = candidateLinks.some(
-        (candidate) => candidate.url === url && !isFallbackOnlyCandidate(url, homepageUrl),
-    )
-
-    if (wasDiscoveredFromHomepage) {
+    if (discoveredUrlSet.has(url)) {
         return false
     }
 
     const text = stripHtmlToText(rawHtml).toLowerCase()
     const title = extractTitle(rawHtml)?.toLowerCase() ?? ""
-
-    if (text.length < 400) {
-        return true
-    }
+    const buckets = classifyBuckets(url, title)
 
     if (looksLikeSoft404Text(text, title)) {
         return true
     }
 
-    if (discoveredUrls.size === 0 && text.length < 1200) {
+    if (text.length < 250) {
         return true
     }
 
-    return false
+    const isFinancial = buckets.includes("financial")
+    if (isFinancial) {
+        return text.length < 450
+    }
+
+    return text.length < 500
 }
+
+
 
 function isFallbackOnlyCandidate(url: string, homepageUrl: string): boolean {
     const fallbackUrls = new Set(
@@ -527,36 +568,100 @@ function looksLikeSoft404Text(text: string, title: string): boolean {
         haystack.includes("looking for something else")
     )
 }
-function scoreFetchedPageContent(rawText: string, title: string, url: string): number {
-  const haystack = `${title} ${url} ${rawText}`.toLowerCase()
-  let score = 0
+function scoreFetchedPageContent(
+    rawText: string,
+    title: string,
+    url: string,
+    buckets: CandidateBucket[],
+): number {
+    const haystack = `${title} ${url} ${rawText}`.toLowerCase()
+    let score = 0
 
-  score += scoreKeywordSet(haystack, CLINICAL_KEYWORDS, 8)
-  score += scoreKeywordSet(haystack, FINANCIAL_KEYWORDS, 8)
-  score += scoreKeywordSet(haystack, SPECIALTY_KEYWORDS, 9)
+    score += scoreKeywordSet(haystack, CLINICAL_KEYWORDS, 8)
+    score += scoreKeywordSet(haystack, FINANCIAL_KEYWORDS, 10)
+    score += scoreKeywordSet(haystack, SPECIALTY_KEYWORDS, 9)
 
-  if (rawText.length > 1500) score += 8
-  else if (rawText.length > 800) score += 4
-  else if (rawText.length < 300) score -= 8
+    if (rawText.length > 1800) score += 8
+    else if (rawText.length > 1000) score += 5
+    else if (rawText.length > 600) score += 2
+    else if (rawText.length < 300) score -= 10
 
-  if (looksLikeSoft404Text(rawText.toLowerCase(), title.toLowerCase())) {
-    score -= 25
-  }
+    if (buckets.includes("financial")) score += 10
+    if (buckets.includes("clinical")) score += 6
+    if (buckets.includes("specialty")) score += 5
 
-  return score
+    if (haystack.includes("verify insurance")) score += 12
+    if (haystack.includes("insurance verification")) score += 12
+    if (haystack.includes("admissions")) score += 8
+    if (haystack.includes("payment options")) score += 6
+
+    if (looksLikeSoft404Text(rawText.toLowerCase(), title.toLowerCase())) {
+        score -= 25
+    }
+
+    return score
+}
+
+
+function computeFinalFetchedScore(
+    contentScore: number,
+    candidateScore: number,
+    buckets: CandidateBucket[],
+    discoveredFromHomepage: boolean,
+    page: CrawlPageResult,
+): number {
+    let score = contentScore + Math.floor(candidateScore / 2)
+
+    if (discoveredFromHomepage) score += 8
+    if (buckets.includes("financial")) score += 8
+    if (buckets.includes("clinical")) score += 4
+    if (buckets.includes("specialty")) score += 4
+
+    const title = (page.title ?? "").toLowerCase()
+    const text = page.rawText.toLowerCase()
+
+    if (title.includes("insurance") || text.includes("verify insurance")) score += 10
+    if (title.includes("admissions")) score += 8
+    if (title.includes("detox")) score += 6
+    if (title.includes("residential")) score += 5
+    if (title.includes("outpatient")) score += 5
+    if (title.includes("dual diagnosis")) score += 6
+    if (title.includes("mat") || title.includes("opioid")) score += 6
+
+    return score
 }
 
 function selectBestFetchedPages(
-  candidates: Array<{
-    page: CrawlPageResult
-    contentScore: number
-  }>,
-  maxPages: number,
-): Array<{
-  page: CrawlPageResult
-  contentScore: number
-}> {
-  return [...candidates]
-    .sort((a, b) => b.contentScore - a.contentScore)
-    .slice(0, maxPages)
+    candidates: FetchedCandidate[],
+    maxPages: number,
+): FetchedCandidate[] {
+    const selected: FetchedCandidate[] = []
+    const usedUrls = new Set<string>()
+
+    const ranked = [...candidates].sort((a, b) => b.finalScore - a.finalScore)
+
+    const takeBestFromBucket = (bucket: CandidateBucket) => {
+        for (const candidate of ranked) {
+            if (usedUrls.has(candidate.page.url)) continue
+            if (!candidate.buckets.includes(bucket)) continue
+
+            selected.push(candidate)
+            usedUrls.add(candidate.page.url)
+            return
+        }
+    }
+
+    takeBestFromBucket("financial")
+    takeBestFromBucket("clinical")
+    takeBestFromBucket("specialty")
+
+    for (const candidate of ranked) {
+        if (selected.length >= maxPages) break
+        if (usedUrls.has(candidate.page.url)) continue
+
+        selected.push(candidate)
+        usedUrls.add(candidate.page.url)
+    }
+
+    return selected.slice(0, maxPages)
 }

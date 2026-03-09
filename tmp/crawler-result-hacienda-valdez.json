@@ -1,57 +1,17 @@
 {
   "facilityId": "hacienda-valdez",
   "rootUrl": "https://haciendavaldez.com",
-  "crawledAt": "2026-03-09T04:59:14.300Z",
+  "crawledAt": "2026-03-09T17:48:07.911Z",
   "pages": [
     {
       "url": "https://haciendavaldez.com/",
       "status": null,
       "ok": false,
-      "fetchedAt": "2026-03-09T04:59:14.259Z",
+      "fetchedAt": "2026-03-09T17:48:07.911Z",
       "title": null,
       "rawHtml": "",
       "rawText": "",
       "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://haciendavaldez.com/\ncurl: (6) Could not resolve host: haciendavaldez.com\n"
-    },
-    {
-      "url": "https://haciendavaldez.com/about",
-      "status": null,
-      "ok": false,
-      "fetchedAt": "2026-03-09T04:59:14.272Z",
-      "title": null,
-      "rawHtml": "",
-      "rawText": "",
-      "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://haciendavaldez.com/about\ncurl: (6) Could not resolve host: haciendavaldez.com\n"
-    },
-    {
-      "url": "https://haciendavaldez.com/admissions",
-      "status": null,
-      "ok": false,
-      "fetchedAt": "2026-03-09T04:59:14.283Z",
-      "title": null,
-      "rawHtml": "",
-      "rawText": "",
-      "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://haciendavaldez.com/admissions\ncurl: (6) Could not resolve host: haciendavaldez.com\n"
-    },
-    {
-      "url": "https://haciendavaldez.com/insurance",
-      "status": null,
-      "ok": false,
-      "fetchedAt": "2026-03-09T04:59:14.292Z",
-      "title": null,
-      "rawHtml": "",
-      "rawText": "",
-      "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://haciendavaldez.com/insurance\ncurl: (6) Could not resolve host: haciendavaldez.com\n"
-    },
-    {
-      "url": "https://haciendavaldez.com/programs",
-      "status": null,
-      "ok": false,
-      "fetchedAt": "2026-03-09T04:59:14.300Z",
-      "title": null,
-      "rawHtml": "",
-      "rawText": "",
-      "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://haciendavaldez.com/programs\ncurl: (6) Could not resolve host: haciendavaldez.com\n"
     }
   ],
   "insuranceDetections": [],

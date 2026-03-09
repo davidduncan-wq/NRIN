@@ -25,6 +25,26 @@ const PROGRAM_PATTERNS: Record<string, RegExp[]> = {
   ],
   sober_living: [/\bsober living\b/i],
   family_program: [/\bfamily program\b/i, /\bfamily therapy\b/i],
+    professional_track: [
+    /\bexecutive program\b/i,
+    /\bexecutive treatment\b/i,
+    /\bexecutive rehab\b/i,
+    /\bprofessionals program\b/i,
+    /\bprofessional program\b/i,
+    /\bprofessionals track\b/i,
+    /\bprofessional track\b/i,
+    /\bphysician program\b/i,
+    /\bphysicians program\b/i,
+    /\bhealthcare professionals program\b/i,
+    /\bhealth care professionals program\b/i,
+    /\blegal professionals program\b/i,
+    /\battorneys program\b/i,
+    /\blawyers program\b/i,
+    /\bfirst responders program\b/i,
+    /\bfirst responders\b/i,
+    /\bpilots program\b/i,
+    /\bmilitary program\b/i,
+  ],
 }
 
 export function parsePrograms(pages: CrawlPageResult[]): ProgramDetection[] {

@@ -1,43 +1,23 @@
 {
   "facilityId": "abc-recovery",
   "rootUrl": "https://abcrecoverycenter.com",
-  "crawledAt": "2026-03-09T04:59:27.568Z",
+  "crawledAt": "2026-03-09T17:48:22.495Z",
   "pages": [
     {
       "url": "https://abcrecoverycenter.com/",
       "status": 200,
       "ok": true,
-      "fetchedAt": "2026-03-09T04:59:26.965Z",
+      "fetchedAt": "2026-03-09T17:48:21.880Z",
       "title": null,
       "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
       "rawText": "",
       "fetchError": null
     },
     {
-      "url": "https://abcrecoverycenter.com/about",
+      "url": "https://abcrecoverycenter.com/treatment-programs",
       "status": 200,
       "ok": true,
-      "fetchedAt": "2026-03-09T04:59:27.105Z",
-      "title": null,
-      "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
-      "rawText": "",
-      "fetchError": null
-    },
-    {
-      "url": "https://abcrecoverycenter.com/admissions",
-      "status": 200,
-      "ok": true,
-      "fetchedAt": "2026-03-09T04:59:27.264Z",
-      "title": null,
-      "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
-      "rawText": "",
-      "fetchError": null
-    },
-    {
-      "url": "https://abcrecoverycenter.com/insurance",
-      "status": 200,
-      "ok": true,
-      "fetchedAt": "2026-03-09T04:59:27.418Z",
+      "fetchedAt": "2026-03-09T17:48:22.042Z",
       "title": null,
       "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
       "rawText": "",
@@ -47,7 +27,27 @@
       "url": "https://abcrecoverycenter.com/programs",
       "status": 200,
       "ok": true,
-      "fetchedAt": "2026-03-09T04:59:27.568Z",
+      "fetchedAt": "2026-03-09T17:48:22.193Z",
+      "title": null,
+      "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
+      "rawText": "",
+      "fetchError": null
+    },
+    {
+      "url": "https://abcrecoverycenter.com/admissions",
+      "status": 200,
+      "ok": true,
+      "fetchedAt": "2026-03-09T17:48:22.340Z",
+      "title": null,
+      "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
+      "rawText": "",
+      "fetchError": null
+    },
+    {
+      "url": "https://abcrecoverycenter.com/opioid-treatment",
+      "status": 200,
+      "ok": true,
+      "fetchedAt": "2026-03-09T17:48:22.494Z",
       "title": null,
       "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
       "rawText": "",
