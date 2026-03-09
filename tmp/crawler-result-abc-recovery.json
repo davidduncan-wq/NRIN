@@ -1,0 +1,67 @@
+{
+  "facilityId": "abc-recovery",
+  "rootUrl": "https://abcrecoverycenter.com",
+  "crawledAt": "2026-03-09T04:59:27.568Z",
+  "pages": [
+    {
+      "url": "https://abcrecoverycenter.com/",
+      "status": 200,
+      "ok": true,
+      "fetchedAt": "2026-03-09T04:59:26.965Z",
+      "title": null,
+      "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
+      "rawText": "",
+      "fetchError": null
+    },
+    {
+      "url": "https://abcrecoverycenter.com/about",
+      "status": 200,
+      "ok": true,
+      "fetchedAt": "2026-03-09T04:59:27.105Z",
+      "title": null,
+      "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
+      "rawText": "",
+      "fetchError": null
+    },
+    {
+      "url": "https://abcrecoverycenter.com/admissions",
+      "status": 200,
+      "ok": true,
+      "fetchedAt": "2026-03-09T04:59:27.264Z",
+      "title": null,
+      "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
+      "rawText": "",
+      "fetchError": null
+    },
+    {
+      "url": "https://abcrecoverycenter.com/insurance",
+      "status": 200,
+      "ok": true,
+      "fetchedAt": "2026-03-09T04:59:27.418Z",
+      "title": null,
+      "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
+      "rawText": "",
+      "fetchError": null
+    },
+    {
+      "url": "https://abcrecoverycenter.com/programs",
+      "status": 200,
+      "ok": true,
+      "fetchedAt": "2026-03-09T04:59:27.568Z",
+      "title": null,
+      "rawHtml": "<!DOCTYPE html><html><head><script>window.onload=function(){window.location.href=\"/lander\"}</script></head></html>",
+      "rawText": "",
+      "fetchError": null
+    }
+  ],
+  "insuranceDetections": [],
+  "programDetections": [],
+  "synopsisDraft": {
+    "shortSynopsis": "The crawler found limited structured treatment or insurance signals on the sampled pages.",
+    "supportingSignals": []
+  },
+  "schemaGapSignals": [
+    "No insurance detections found on sampled pages",
+    "No program detections found on sampled pages"
+  ]
+}

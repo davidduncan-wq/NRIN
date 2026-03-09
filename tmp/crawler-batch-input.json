@@ -1,0 +1,42 @@
+[
+  {
+    "facilityId": "hazelden-betty-ford",
+    "url": "https://www.hazeldenbettyford.org"
+  },
+  {
+    "facilityId": "ohana-recovery",
+    "url": "https://www.theohanarecoverycenter.com"
+  },
+  {
+    "facilityId": "oasis-recovery",
+    "url": "https://www.oasisrecovery.com"
+  },
+  {
+    "facilityId": "solution-point",
+    "url": "https://solutionpointbh.com"
+  },
+  {
+    "facilityId": "ranch-recovery",
+    "url": "https://ranchrecovery.com"
+  },
+  {
+    "facilityId": "hacienda-valdez",
+    "url": "https://haciendavaldez.com"
+  },
+  {
+    "facilityId": "michaels-house",
+    "url": "https://www.michaelshouse.com"
+  },
+  {
+    "facilityId": "abc-recovery",
+    "url": "https://abcrecoverycenter.com"
+  },
+  {
+    "facilityId": "banyan-treatment",
+    "url": "https://www.banyantreatmentcenter.com"
+  },
+  {
+    "facilityId": "capistrano-by-the-sea",
+    "url": "https://www.capobythesea.com"
+  }
+]

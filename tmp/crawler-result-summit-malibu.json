@@ -1,0 +1,68 @@
+{
+  "facilityId": "summit-malibu",
+  "rootUrl": "https://www.thesummitmalibu.com",
+  "crawledAt": "2026-03-09T05:10:36.773Z",
+  "pages": [
+    {
+      "url": "https://www.thesummitmalibu.com/",
+      "status": null,
+      "ok": false,
+      "fetchedAt": "2026-03-09T05:10:36.739Z",
+      "title": null,
+      "rawHtml": "",
+      "rawText": "",
+      "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://www.thesummitmalibu.com/\ncurl: (6) Could not resolve host: www.thesummitmalibu.com\n"
+    },
+    {
+      "url": "https://www.thesummitmalibu.com/about",
+      "status": null,
+      "ok": false,
+      "fetchedAt": "2026-03-09T05:10:36.752Z",
+      "title": null,
+      "rawHtml": "",
+      "rawText": "",
+      "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://www.thesummitmalibu.com/about\ncurl: (6) Could not resolve host: www.thesummitmalibu.com\n"
+    },
+    {
+      "url": "https://www.thesummitmalibu.com/admissions",
+      "status": null,
+      "ok": false,
+      "fetchedAt": "2026-03-09T05:10:36.759Z",
+      "title": null,
+      "rawHtml": "",
+      "rawText": "",
+      "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://www.thesummitmalibu.com/admissions\ncurl: (6) Could not resolve host: www.thesummitmalibu.com\n"
+    },
+    {
+      "url": "https://www.thesummitmalibu.com/insurance",
+      "status": null,
+      "ok": false,
+      "fetchedAt": "2026-03-09T05:10:36.766Z",
+      "title": null,
+      "rawHtml": "",
+      "rawText": "",
+      "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://www.thesummitmalibu.com/insurance\ncurl: (6) Could not resolve host: www.thesummitmalibu.com\n"
+    },
+    {
+      "url": "https://www.thesummitmalibu.com/programs",
+      "status": null,
+      "ok": false,
+      "fetchedAt": "2026-03-09T05:10:36.773Z",
+      "title": null,
+      "rawHtml": "",
+      "rawText": "",
+      "fetchError": "Command failed: curl -L --silent --show-error --max-time 20 --user-agent Mozilla/5.0 (compatible; NRIN-Crawler/1.0) --header accept: text/html,application/xhtml+xml https://www.thesummitmalibu.com/programs\ncurl: (6) Could not resolve host: www.thesummitmalibu.com\n"
+    }
+  ],
+  "insuranceDetections": [],
+  "programDetections": [],
+  "synopsisDraft": {
+    "shortSynopsis": "The crawler found limited structured treatment or insurance signals on the sampled pages.",
+    "supportingSignals": []
+  },
+  "schemaGapSignals": [
+    "No insurance detections found on sampled pages",
+    "No program detections found on sampled pages",
+    "No candidate pages fetched successfully"
+  ]
+}
