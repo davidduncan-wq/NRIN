@@ -13,9 +13,9 @@ Before doing ANYTHING you must read these files in order:
 7. project_brain/NEXT_BUILD_TARGET.md
 8. project_brain/DECISION_LOG.md
 9. project_brain/NRIN_DESIGN_SYSTEM.md
-10. NRIN_PRODUCT_ARCHITECTURE.md
-11. NRIN_PRODUCT_VISION.md
-12. PROJECT_INDEX.md
+10. project_brain/NRIN_PRODUCT_ARCHITECTURE.md
+11. project_brain/NRIN_PRODUCT_VISION.md
+12. project_brain/PROJECT_INDEX.md
 
 GitHub is the canonical source of truth.
 
