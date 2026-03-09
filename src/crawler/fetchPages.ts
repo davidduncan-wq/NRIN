@@ -145,6 +145,11 @@ export async function fetchPages(rootUrl: string): Promise<CrawlPageResult[]> {
 
         try {
             const rawHtml = await fetchHtmlWithCurl(url)
+
+            if (isLikelyBadFallbackPage(url, rawHtml, homepageUrl, candidateLinks)) {
+                continue
+            }
+
             pages.push(buildSuccessPage(url, rawHtml))
         } catch (error) {
             pages.push(buildErrorPage(url, error))
@@ -444,4 +449,62 @@ function selectUrlsForCoverage(
     }
 
     return Array.from(selected).slice(0, maxPages)
+}
+function isLikelyBadFallbackPage(
+  url: string,
+  rawHtml: string,
+  homepageUrl: string,
+  candidateLinks: CandidateLink[],
+): boolean {
+  const discoveredUrls = new Set(
+    extractCandidateLinks(rawHtml, homepageUrl).map((candidate) => candidate.url),
+  )
+
+  const wasDiscoveredFromHomepage = candidateLinks.some(
+    (candidate) => candidate.url === url && !isFallbackOnlyCandidate(url, homepageUrl),
+  )
+
+  if (wasDiscoveredFromHomepage) {
+    return false
+  }
+
+  const text = stripHtmlToText(rawHtml).toLowerCase()
+  const title = extractTitle(rawHtml)?.toLowerCase() ?? ""
+
+  if (text.length < 400) {
+    return true
+  }
+
+  if (looksLikeSoft404Text(text, title)) {
+    return true
+  }
+
+  if (discoveredUrls.size === 0 && text.length < 1200) {
+    return true
+  }
+
+  return false
+}
+
+function isFallbackOnlyCandidate(url: string, homepageUrl: string): boolean {
+  const fallbackUrls = new Set(
+    FALLBACK_CANDIDATE_PATHS.map((path) => new URL(path, homepageUrl).toString()),
+  )
+
+  return fallbackUrls.has(url)
+}
+
+function looksLikeSoft404Text(text: string, title: string): boolean {
+  const haystack = `${title} ${text}`
+
+  return (
+    haystack.includes("page not found") ||
+    haystack.includes("404") ||
+    haystack.includes("not found") ||
+    haystack.includes("sorry, we can't find") ||
+    haystack.includes("sorry, we can’t find") ||
+    haystack.includes("does not exist") ||
+    haystack.includes("no longer available") ||
+    haystack.includes("looking for something else")
+  )
 }
