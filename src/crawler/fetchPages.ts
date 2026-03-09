@@ -6,6 +6,7 @@ import { extractTitle, stripHtmlToText } from "./stripHtml"
 const execFileAsync = promisify(execFile)
 
 const MAX_SELECTED_PAGES = 5
+const MAX_PRELIMINARY_PAGES = 8
 const HOMEPAGE_PATH = "/"
 
 const FALLBACK_CANDIDATE_PATHS = [
@@ -138,9 +139,18 @@ export async function fetchPages(rootUrl: string): Promise<CrawlPageResult[]> {
     const discoveredCandidateLinks = extractCandidateLinks(homepageHtml, homepageUrl)
     const fallbackCandidateLinks = buildFallbackCandidateLinks(homepageUrl)
     const candidateLinks = mergeCandidateLinks(discoveredCandidateLinks, fallbackCandidateLinks)
-    const selectedUrls = selectUrlsForCoverage(homepageUrl, candidateLinks, MAX_SELECTED_PAGES)
+    const preliminaryUrls = selectUrlsForCoverage(
+        homepageUrl,
+        candidateLinks,
+        MAX_PRELIMINARY_PAGES,
+    )
 
-    for (const url of selectedUrls) {
+    const fetchedCandidates: Array<{
+        page: CrawlPageResult
+        contentScore: number
+    }> = []
+
+    for (const url of preliminaryUrls) {
         if (url === homepageUrl) continue
 
         try {
@@ -150,10 +160,19 @@ export async function fetchPages(rootUrl: string): Promise<CrawlPageResult[]> {
                 continue
             }
 
-            pages.push(buildSuccessPage(url, rawHtml))
+            const page = buildSuccessPage(url, rawHtml)
+            const contentScore = scoreFetchedPageContent(page.rawText, page.title ?? "", url)
+
+            fetchedCandidates.push({ page, contentScore })
         } catch (error) {
             pages.push(buildErrorPage(url, error))
         }
+    }
+
+    const finalPages = selectBestFetchedPages(fetchedCandidates, MAX_SELECTED_PAGES - 1)
+
+    for (const entry of finalPages) {
+        pages.push(entry.page)
     }
 
     return pages
@@ -451,60 +470,93 @@ function selectUrlsForCoverage(
     return Array.from(selected).slice(0, maxPages)
 }
 function isLikelyBadFallbackPage(
-  url: string,
-  rawHtml: string,
-  homepageUrl: string,
-  candidateLinks: CandidateLink[],
+    url: string,
+    rawHtml: string,
+    homepageUrl: string,
+    candidateLinks: CandidateLink[],
 ): boolean {
-  const discoveredUrls = new Set(
-    extractCandidateLinks(rawHtml, homepageUrl).map((candidate) => candidate.url),
-  )
+    const discoveredUrls = new Set(
+        extractCandidateLinks(rawHtml, homepageUrl).map((candidate) => candidate.url),
+    )
 
-  const wasDiscoveredFromHomepage = candidateLinks.some(
-    (candidate) => candidate.url === url && !isFallbackOnlyCandidate(url, homepageUrl),
-  )
+    const wasDiscoveredFromHomepage = candidateLinks.some(
+        (candidate) => candidate.url === url && !isFallbackOnlyCandidate(url, homepageUrl),
+    )
 
-  if (wasDiscoveredFromHomepage) {
+    if (wasDiscoveredFromHomepage) {
+        return false
+    }
+
+    const text = stripHtmlToText(rawHtml).toLowerCase()
+    const title = extractTitle(rawHtml)?.toLowerCase() ?? ""
+
+    if (text.length < 400) {
+        return true
+    }
+
+    if (looksLikeSoft404Text(text, title)) {
+        return true
+    }
+
+    if (discoveredUrls.size === 0 && text.length < 1200) {
+        return true
+    }
+
     return false
-  }
-
-  const text = stripHtmlToText(rawHtml).toLowerCase()
-  const title = extractTitle(rawHtml)?.toLowerCase() ?? ""
-
-  if (text.length < 400) {
-    return true
-  }
-
-  if (looksLikeSoft404Text(text, title)) {
-    return true
-  }
-
-  if (discoveredUrls.size === 0 && text.length < 1200) {
-    return true
-  }
-
-  return false
 }
 
 function isFallbackOnlyCandidate(url: string, homepageUrl: string): boolean {
-  const fallbackUrls = new Set(
-    FALLBACK_CANDIDATE_PATHS.map((path) => new URL(path, homepageUrl).toString()),
-  )
+    const fallbackUrls = new Set(
+        FALLBACK_CANDIDATE_PATHS.map((path) => new URL(path, homepageUrl).toString()),
+    )
 
-  return fallbackUrls.has(url)
+    return fallbackUrls.has(url)
 }
 
 function looksLikeSoft404Text(text: string, title: string): boolean {
-  const haystack = `${title} ${text}`
+    const haystack = `${title} ${text}`
 
-  return (
-    haystack.includes("page not found") ||
-    haystack.includes("404") ||
-    haystack.includes("not found") ||
-    haystack.includes("sorry, we can't find") ||
-    haystack.includes("sorry, we can’t find") ||
-    haystack.includes("does not exist") ||
-    haystack.includes("no longer available") ||
-    haystack.includes("looking for something else")
-  )
+    return (
+        haystack.includes("page not found") ||
+        haystack.includes("404") ||
+        haystack.includes("not found") ||
+        haystack.includes("sorry, we can't find") ||
+        haystack.includes("sorry, we can’t find") ||
+        haystack.includes("does not exist") ||
+        haystack.includes("no longer available") ||
+        haystack.includes("looking for something else")
+    )
+}
+function scoreFetchedPageContent(rawText: string, title: string, url: string): number {
+  const haystack = `${title} ${url} ${rawText}`.toLowerCase()
+  let score = 0
+
+  score += scoreKeywordSet(haystack, CLINICAL_KEYWORDS, 8)
+  score += scoreKeywordSet(haystack, FINANCIAL_KEYWORDS, 8)
+  score += scoreKeywordSet(haystack, SPECIALTY_KEYWORDS, 9)
+
+  if (rawText.length > 1500) score += 8
+  else if (rawText.length > 800) score += 4
+  else if (rawText.length < 300) score -= 8
+
+  if (looksLikeSoft404Text(rawText.toLowerCase(), title.toLowerCase())) {
+    score -= 25
+  }
+
+  return score
+}
+
+function selectBestFetchedPages(
+  candidates: Array<{
+    page: CrawlPageResult
+    contentScore: number
+  }>,
+  maxPages: number,
+): Array<{
+  page: CrawlPageResult
+  contentScore: number
+}> {
+  return [...candidates]
+    .sort((a, b) => b.contentScore - a.contentScore)
+    .slice(0, maxPages)
 }
