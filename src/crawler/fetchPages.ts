@@ -8,6 +8,32 @@ const execFileAsync = promisify(execFile)
 const MAX_SELECTED_PAGES = 5
 const HOMEPAGE_PATH = "/"
 
+const FALLBACK_CANDIDATE_PATHS = [
+  "/programs",
+  "/program",
+  "/treatment",
+  "/treatment-programs",
+  "/services",
+  "/levels-of-care",
+  "/detox",
+  "/residential",
+  "/inpatient",
+  "/outpatient",
+  "/intensive-outpatient",
+  "/iop",
+  "/partial-hospitalization",
+  "/php",
+  "/admissions",
+  "/insurance",
+  "/verify-insurance",
+  "/payment-options",
+  "/dual-diagnosis",
+  "/co-occurring-disorders",
+  "/mat",
+  "/medication-assisted-treatment",
+  "/opioid-treatment",
+]
+
 type CandidateBucket = "clinical" | "financial" | "specialty"
 
 type CandidateLink = {
@@ -109,7 +135,9 @@ export async function fetchPages(rootUrl: string): Promise<CrawlPageResult[]> {
     return pages
   }
 
-  const candidateLinks = extractCandidateLinks(homepageHtml, homepageUrl)
+  const discoveredCandidateLinks = extractCandidateLinks(homepageHtml, homepageUrl)
+  const fallbackCandidateLinks = buildFallbackCandidateLinks(homepageUrl)
+  const candidateLinks = mergeCandidateLinks(discoveredCandidateLinks, fallbackCandidateLinks)
   const selectedUrls = selectUrlsForCoverage(homepageUrl, candidateLinks, MAX_SELECTED_PAGES)
 
   for (const url of selectedUrls) {
@@ -213,6 +241,45 @@ function extractCandidateLinks(html: string, homepageUrl: string): CandidateLink
   return Array.from(deduped.values()).sort((a, b) => b.score - a.score)
 }
 
+function buildFallbackCandidateLinks(homepageUrl: string): CandidateLink[] {
+  const homepage = new URL(homepageUrl)
+
+  return FALLBACK_CANDIDATE_PATHS.map((path) => {
+    const url = new URL(path, homepage).toString()
+    const anchorText = path.replace(/\//g, " ").replace(/-/g, " ").trim()
+    const score = Math.max(scoreCandidate(url, anchorText) - 2, 1)
+    const buckets = classifyBuckets(url, anchorText)
+
+    return {
+      url,
+      anchorText,
+      score,
+      buckets,
+    }
+  }).filter((candidate) => candidate.buckets.length > 0)
+}
+
+function mergeCandidateLinks(
+  discovered: CandidateLink[],
+  fallback: CandidateLink[],
+): CandidateLink[] {
+  const merged = new Map<string, CandidateLink>()
+
+  for (const candidate of fallback) {
+    merged.set(candidate.url, candidate)
+  }
+
+  for (const candidate of discovered) {
+    const existing = merged.get(candidate.url)
+
+    if (!existing || candidate.score >= existing.score) {
+      merged.set(candidate.url, candidate)
+    }
+  }
+
+  return Array.from(merged.values()).sort((a, b) => b.score - a.score)
+}
+
 function resolveInternalUrl(base: URL, href: string): string | null {
   if (!href) return null
   if (href.startsWith("#")) return null
@@ -234,10 +301,6 @@ function resolveInternalUrl(base: URL, href: string): string | null {
 
   url.pathname = normalizedPath
   url.search = ""
-
-  if (normalizePath(url.pathname) === HOMEPAGE_PATH) {
-    return url.toString()
-  }
 
   return url.toString()
 }
@@ -365,21 +428,15 @@ function selectUrlsForCoverage(
       if (!candidate.buckets.includes(bucket)) continue
       if (selected.has(candidate.url)) continue
       selected.add(candidate.url)
-      if (count <= 1) return
       count -= 1
+      if (count <= 0) return
     }
   }
 
-  // Coverage plan:
-  // 1 homepage
-  // 2 clinical
-  // 1 financial
-  // 1 specialty
   reserveFromBucket("clinical", 2)
   reserveFromBucket("financial", 1)
   reserveFromBucket("specialty", 1)
 
-  // Fill any remaining slots with best overall candidates.
   for (const candidate of ranked) {
     if (selected.size >= maxPages) break
     if (selected.has(candidate.url)) continue
