@@ -65,6 +65,25 @@ const STRONG_NEGATIVE_PAGE_HINTS = [
     "faq",
     "faqs",
 ]
+const SECOND_HOP_SEED_KEYWORDS = [
+    "program",
+    "programs",
+    "treatment",
+    "detox",
+    "residential",
+    "inpatient",
+    "outpatient",
+    "php",
+    "partial hospitalization",
+    "iop",
+    "intensive outpatient",
+    "dual diagnosis",
+    "co-occurring",
+    "insurance",
+    "verify insurance",
+    "admissions",
+    "payment",
+]
 
 type CandidateBucket = "clinical" | "financial" | "specialty"
 
@@ -176,7 +195,8 @@ export async function fetchPages(rootUrl: string): Promise<CrawlPageResult[]> {
 
     const homepageCandidateLinks = extractCandidateLinks(homepageHtml, homepageUrl)
 
-    const secondHopSeedUrls = homepageCandidateLinks
+    const secondHopSeedUrls = [...homepageCandidateLinks]
+        .sort((a, b) => scoreSecondHopSeed(b) - scoreSecondHopSeed(a))
         .map((candidate) => candidate.url)
         .filter((url) => url !== homepageUrl)
         .slice(0, 2)
@@ -309,6 +329,29 @@ function normalizeRootUrl(rootUrl: string): string {
     url.search = ""
     url.hash = ""
     return url.toString()
+}
+
+function scoreSecondHopSeed(candidate: CandidateLink): number {
+    const haystack = `${candidate.url} ${candidate.anchorText}`.toLowerCase()
+    let score = candidate.score
+
+    for (const keyword of SECOND_HOP_SEED_KEYWORDS) {
+        if (haystack.includes(keyword)) {
+            score += 8
+        }
+    }
+
+    if (candidate.buckets.includes("clinical")) score += 6
+    if (candidate.buckets.includes("financial")) score += 5
+    if (candidate.buckets.includes("specialty")) score += 4
+
+    if (haystack.includes("/programs/")) score += 8
+    if (haystack.includes("/treatment/")) score += 7
+    if (haystack.includes("/levels-of-care/")) score += 7
+    if (haystack.includes("/admissions")) score += 6
+    if (haystack.includes("/insurance")) score += 6
+
+    return score
 }
 
 function extractCandidateLinks(html: string, homepageUrl: string): CandidateLink[] {
@@ -444,6 +487,12 @@ function scoreCandidate(url: string, anchorText: string): number {
 
     if (looksLikeDeepProgramPage(url)) score += 8
     if (looksLikeGenericButUsefulPage(url)) score += 3
+    if (url.toLowerCase().includes("/programs/")) score += 6
+    if (url.toLowerCase().includes("/treatment/")) score += 5
+    if (url.toLowerCase().includes("/levels-of-care/")) score += 5
+    if (url.includes("/programs/")) score += 6
+    if (url.includes("/treatment/")) score += 5
+    if (url.includes("/levels-of-care/")) score += 5
 
     for (const term of NEGATIVE_HINTS) {
         if (haystack.includes(term)) score -= 8
@@ -706,51 +755,51 @@ function selectBestFetchedPages(
         }
     }
 
-        takeBestFromBucket("financial")
-        takeBestFromBucket("clinical")
-        takeBestFromBucket("specialty")
+    takeBestFromBucket("financial")
+    takeBestFromBucket("clinical")
+    takeBestFromBucket("specialty")
 
-        for (const candidate of ranked) {
-            if (selected.length >= maxPages) break
-            if (usedUrls.has(candidate.page.url)) continue
-            if (isJunkUrl(candidate.page.url)) continue
+    for (const candidate of ranked) {
+        if (selected.length >= maxPages) break
+        if (usedUrls.has(candidate.page.url)) continue
+        if (isJunkUrl(candidate.page.url)) continue
 
-            selected.push(candidate)
-            usedUrls.add(candidate.page.url)
-        }
-
-        return selected.slice(0, maxPages)
+        selected.push(candidate)
+        usedUrls.add(candidate.page.url)
     }
-    function scoreNegativeFetchedPageSignals(
-        rawText: string,
-        title: string,
-        url: string,
-    ): number {
-        const lowerTitle = title.toLowerCase()
-        const lowerUrl = url.toLowerCase()
-        const lowerText = rawText.toLowerCase()
 
-        let penalty = 0
+    return selected.slice(0, maxPages)
+}
+function scoreNegativeFetchedPageSignals(
+    rawText: string,
+    title: string,
+    url: string,
+): number {
+    const lowerTitle = title.toLowerCase()
+    const lowerUrl = url.toLowerCase()
+    const lowerText = rawText.toLowerCase()
 
-        for (const term of STRONG_NEGATIVE_PAGE_HINTS) {
-            if (lowerTitle.includes(term)) penalty += 12
-            if (lowerUrl.includes(term)) penalty += 12
-        }
+    let penalty = 0
 
-        let bodyHits = 0
-        for (const term of STRONG_NEGATIVE_PAGE_HINTS) {
-            if (lowerText.includes(term)) bodyHits += 1
-        }
-
-        if (bodyHits >= 3) penalty += 8
-        else if (bodyHits >= 2) penalty += 4
-
-        if (lowerUrl.includes("/blog/")) penalty += 16
-        if (lowerUrl.includes("/category/")) penalty += 16
-        if (lowerUrl.includes("/tag/")) penalty += 16
-        if (lowerUrl.includes("/archive/")) penalty += 16
-        if (lowerUrl.includes("opt-out")) penalty += 18
-        if (lowerUrl.includes("do-not-sell")) penalty += 18
-
-        return penalty
+    for (const term of STRONG_NEGATIVE_PAGE_HINTS) {
+        if (lowerTitle.includes(term)) penalty += 12
+        if (lowerUrl.includes(term)) penalty += 12
     }
+
+    let bodyHits = 0
+    for (const term of STRONG_NEGATIVE_PAGE_HINTS) {
+        if (lowerText.includes(term)) bodyHits += 1
+    }
+
+    if (bodyHits >= 3) penalty += 8
+    else if (bodyHits >= 2) penalty += 4
+
+    if (lowerUrl.includes("/blog/")) penalty += 16
+    if (lowerUrl.includes("/category/")) penalty += 16
+    if (lowerUrl.includes("/tag/")) penalty += 16
+    if (lowerUrl.includes("/archive/")) penalty += 16
+    if (lowerUrl.includes("opt-out")) penalty += 18
+    if (lowerUrl.includes("do-not-sell")) penalty += 18
+
+    return penalty
+}
