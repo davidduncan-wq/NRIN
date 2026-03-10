@@ -34,6 +34,37 @@ const FALLBACK_CANDIDATE_PATHS = [
     "/medication-assisted-treatment",
     "/opioid-treatment",
 ]
+const STRONG_NEGATIVE_PAGE_HINTS = [
+    "privacy policy",
+    "privacy",
+    "terms of use",
+    "terms and conditions",
+    "terms",
+    "policy",
+    "policies",
+    "opt-out",
+    "opt out",
+    "do not sell",
+    "do-not-sell",
+    "cookie policy",
+    "blog",
+    "news",
+    "press",
+    "press release",
+    "category",
+    "categories",
+    "tag",
+    "tags",
+    "archive",
+    "archives",
+    "screener",
+    "quiz",
+    "assessment",
+    "what to bring",
+    "things to bring",
+    "faq",
+    "faqs",
+]
 
 type CandidateBucket = "clinical" | "financial" | "specialty"
 
@@ -568,6 +599,13 @@ function looksLikeSoft404Text(text: string, title: string): boolean {
         haystack.includes("looking for something else")
     )
 }
+function getPathname(url: string): string {
+    try {
+        return new URL(url).pathname.toLowerCase()
+    } catch {
+        return url.toLowerCase()
+    }
+}
 function scoreFetchedPageContent(
     rawText: string,
     title: string,
@@ -594,6 +632,8 @@ function scoreFetchedPageContent(
     if (haystack.includes("insurance verification")) score += 12
     if (haystack.includes("admissions")) score += 8
     if (haystack.includes("payment options")) score += 6
+
+    score -= scoreNegativeFetchedPageSignals(rawText, title, url)
 
     if (looksLikeSoft404Text(rawText.toLowerCase(), title.toLowerCase())) {
         score -= 25
@@ -628,7 +668,9 @@ function computeFinalFetchedScore(
     if (title.includes("dual diagnosis")) score += 6
     if (title.includes("mat") || title.includes("opioid")) score += 6
 
+    score -= scoreNegativeFetchedPageSignals(page.rawText, page.title ?? "", page.url)
     return score
+
 }
 
 function selectBestFetchedPages(
@@ -639,10 +681,23 @@ function selectBestFetchedPages(
     const usedUrls = new Set<string>()
 
     const ranked = [...candidates].sort((a, b) => b.finalScore - a.finalScore)
+    const isJunkUrl = (url: string) => {
+        const path = url.toLowerCase()
+        return (
+            path.includes("/blog/") ||
+            path.includes("opt-out") ||
+            path.includes("do-not-sell") ||
+            path.includes("addiction-101") ||
+            path.includes("/assessment/") ||
+            path.includes("/quiz/") ||
+            path.includes("/screener/")
+        );
+    }
 
     const takeBestFromBucket = (bucket: CandidateBucket) => {
         for (const candidate of ranked) {
             if (usedUrls.has(candidate.page.url)) continue
+            if (isJunkUrl(candidate.page.url)) continue
             if (!candidate.buckets.includes(bucket)) continue
 
             selected.push(candidate)
@@ -651,17 +706,51 @@ function selectBestFetchedPages(
         }
     }
 
-    takeBestFromBucket("financial")
-    takeBestFromBucket("clinical")
-    takeBestFromBucket("specialty")
+        takeBestFromBucket("financial")
+        takeBestFromBucket("clinical")
+        takeBestFromBucket("specialty")
 
-    for (const candidate of ranked) {
-        if (selected.length >= maxPages) break
-        if (usedUrls.has(candidate.page.url)) continue
+        for (const candidate of ranked) {
+            if (selected.length >= maxPages) break
+            if (usedUrls.has(candidate.page.url)) continue
+            if (isJunkUrl(candidate.page.url)) continue
 
-        selected.push(candidate)
-        usedUrls.add(candidate.page.url)
+            selected.push(candidate)
+            usedUrls.add(candidate.page.url)
+        }
+
+        return selected.slice(0, maxPages)
     }
+    function scoreNegativeFetchedPageSignals(
+        rawText: string,
+        title: string,
+        url: string,
+    ): number {
+        const lowerTitle = title.toLowerCase()
+        const lowerUrl = url.toLowerCase()
+        const lowerText = rawText.toLowerCase()
 
-    return selected.slice(0, maxPages)
-}
+        let penalty = 0
+
+        for (const term of STRONG_NEGATIVE_PAGE_HINTS) {
+            if (lowerTitle.includes(term)) penalty += 12
+            if (lowerUrl.includes(term)) penalty += 12
+        }
+
+        let bodyHits = 0
+        for (const term of STRONG_NEGATIVE_PAGE_HINTS) {
+            if (lowerText.includes(term)) bodyHits += 1
+        }
+
+        if (bodyHits >= 3) penalty += 8
+        else if (bodyHits >= 2) penalty += 4
+
+        if (lowerUrl.includes("/blog/")) penalty += 16
+        if (lowerUrl.includes("/category/")) penalty += 16
+        if (lowerUrl.includes("/tag/")) penalty += 16
+        if (lowerUrl.includes("/archive/")) penalty += 16
+        if (lowerUrl.includes("opt-out")) penalty += 18
+        if (lowerUrl.includes("do-not-sell")) penalty += 18
+
+        return penalty
+    }
