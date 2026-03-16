@@ -1,10 +1,10 @@
 export function buildGoogleQuery(name: string, city?: string, state?: string): string {
-    let query = `${name}`
+    let query = `"${name}"`
 
-    if (city) query += ` ${city}`
-    if (state) query += ` ${state}`
+    if (city) query += ` "${city}"`
+    if (state) query += ` "${state}"`
 
-    query += " addiction treatment center"
+    query += ' ("addiction treatment" OR "substance abuse treatment" OR "behavioral health" OR "mental health")'
 
     return query
 }

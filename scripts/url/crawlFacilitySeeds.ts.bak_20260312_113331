@@ -1,0 +1,88 @@
+import * as dotenv from "dotenv"
+dotenv.config({ path: ".env.local" })
+
+import { createClient } from "@supabase/supabase-js"
+import { crawlFacility } from "../../src/crawler/crawlFacility"
+
+const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+const BATCH_SIZE = 10
+
+async function run() {
+    const { data: crawledRows, error: crawledError } = await supabase
+        .from("facility_crawl_results")
+        .select("facility_seed_id")
+
+    if (crawledError) {
+        console.error(crawledError)
+        process.exit(1)
+    }
+
+    const crawledSeedIds = new Set(
+        (crawledRows ?? [])
+            .map((row) => row.facility_seed_id)
+            .filter(Boolean),
+    )
+
+    const { data, error } = await supabase
+        .from("facility_seeds")
+        .select("*")
+        .order("created_at", { ascending: false })
+
+    if (error) {
+        console.error(error)
+        process.exit(1)
+    }
+
+    const pendingSeeds = (data ?? [])
+        .filter((seed) => seed.domain)
+        .filter((seed) => !crawledSeedIds.has(seed.id))
+        .slice(0, BATCH_SIZE)
+
+    console.log("already crawled:", crawledSeedIds.size)
+    console.log("seed batch size:", pendingSeeds.length)
+
+    for (const seed of pendingSeeds) {
+        console.log(`URL: ${seed.domain}`)
+
+        const result = await crawlFacility({
+            facilityId: seed.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+            rootUrl: seed.domain,
+        })
+
+        console.log("pages:", result.pages.length)
+        console.log("program detections:", result.programDetections.length)
+        console.log("insurance detections:", result.insuranceDetections.length)
+
+        const { error: insertError } = await supabase
+            .from("facility_crawl_results")
+            .insert({
+                facility_seed_id: seed.id,
+                name: seed.name,
+                domain: seed.domain,
+                pages_count: result.pages.length,
+                program_detections_count: result.programDetections.length,
+                insurance_detections_count: result.insuranceDetections.length,
+                program_types: result.programDetections,
+                insurance_carriers: result.insuranceDetections,
+                synopsis: result.synopsisDraft.shortSynopsis,
+                raw_result: result,
+            })
+
+        if (insertError) {
+            console.error("insert error", seed.name, insertError)
+        }
+    }
+}
+
+run()
+    .then(() => {
+        console.log("crawl batch complete")
+    })
+    .catch((error) => {
+        console.error("crawl batch failed", error)
+        process.exit(1)
+    })
