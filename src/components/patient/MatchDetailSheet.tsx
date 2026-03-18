@@ -18,16 +18,14 @@ export default function MatchDetailSheet({
     <AnimatePresence>
       {open && (
         <>
-          {/* BACKDROP */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.4 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black z-40"
+            className="fixed inset-0 z-40 bg-black"
             onClick={onClose}
           />
 
-          {/* PANEL */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
@@ -35,12 +33,9 @@ export default function MatchDetailSheet({
             transition={{ type: "spring", stiffness: 260, damping: 30 }}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-white p-6 shadow-2xl"
           >
-            <div className="max-w-3xl mx-auto">
-
+            <div className="mx-auto max-w-3xl">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">
-                  {match.title}
-                </h2>
+                <h2 className="text-xl font-semibold">{match.title}</h2>
 
                 <button
                   onClick={onClose}
@@ -51,26 +46,51 @@ export default function MatchDetailSheet({
               </div>
 
               <div className="mt-4 space-y-3">
-                {match.reasons.map((reason) => (
+                {match.reasons.map((reason, reasonIndex) => (
                   <div
-                    key={reason}
-                    className="rounded-xl border border-neutral-200 px-4 py-3 text-sm"
+                    key={`${match.id}-reason-${reasonIndex}-${reason.label}`}
+                    className="rounded-xl border border-neutral-200 px-4 py-3"
                   >
-                    {reason}
+                    <div className="text-sm font-medium text-neutral-900">
+                      {reason.label}
+                    </div>
+
+                    {reason.snippet && (
+                      <div className="mt-2 text-sm leading-6 text-neutral-600">
+                        {reason.snippet}
+                      </div>
+                    )}
+
+                    {(reason.sourceLabel || reason.sourceUrl) && (
+                      <div className="mt-3 text-xs text-neutral-500">
+                        {reason.sourceUrl ? (
+                          <a
+                            href={reason.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline underline-offset-2"
+                          >
+                            {reason.sourceLabel ?? "View source"}
+                          </a>
+                        ) : (
+                          reason.sourceLabel
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
 
               {match.cautions.length > 0 && (
                 <div className="mt-6">
-                  <div className="text-xs uppercase text-neutral-500 mb-2">
+                  <div className="mb-2 text-xs uppercase text-neutral-500">
                     Cautions
                   </div>
 
                   {match.cautions.map((caution) => (
                     <div
                       key={caution}
-                      className="text-sm text-neutral-600 mb-1"
+                      className="mb-1 text-sm text-neutral-600"
                     >
                       {caution}
                     </div>
@@ -83,7 +103,6 @@ export default function MatchDetailSheet({
                   Choose this facility
                 </button>
               </div>
-
             </div>
           </motion.div>
         </>

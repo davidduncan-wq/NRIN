@@ -1,10 +1,18 @@
-import type { FacilityMatchResult } from "./types"
+import type { FacilityMatchResult, MatchReasonEvidence } from "./types"
+
+export type MatchReasonViewModel = {
+  label: string
+  snippet?: string
+  sourceUrl?: string
+  sourceLabel?: string
+  anchorId?: string
+}
 
 export type MatchViewModel = {
   id: string
   title: string
   score: number
-  reasons: string[]
+  reasons: MatchReasonViewModel[]
   cautions: string[]
   badges: string[]
   meta: {
@@ -12,6 +20,22 @@ export type MatchViewModel = {
     insuranceScore: number
     specialtiesScore: number
     confidenceScore: number
+  }
+}
+
+function normalizeReason(
+  reason: string | MatchReasonEvidence,
+): MatchReasonViewModel {
+  if (typeof reason === "string") {
+    return { label: reason }
+  }
+
+  return {
+    label: reason.label,
+    snippet: reason.snippet,
+    sourceUrl: reason.sourceUrl,
+    sourceLabel: reason.sourceLabel,
+    anchorId: reason.anchorId,
   }
 }
 
@@ -38,7 +62,7 @@ export function buildMatchViewModel(match: FacilityMatchResult): MatchViewModel 
     id: match.facilityId,
     title: match.facilityName,
     score: match.totalScore,
-    reasons: match.explanation.reasons,
+    reasons: match.explanation.reasons.map(normalizeReason),
     cautions: match.explanation.cautions,
     badges,
     meta: {

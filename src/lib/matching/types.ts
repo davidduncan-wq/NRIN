@@ -81,8 +81,16 @@ export type ConfidenceScoreBreakdown = {
   score: number
 }
 
+export type MatchReasonEvidence = {
+  label: string
+  snippet?: string
+  sourceUrl?: string
+  sourceLabel?: string
+  anchorId?: string
+}
+
 export type MatchExplanation = {
-  reasons: string[]
+  reasons: Array<string | MatchReasonEvidence>
   cautions: string[]
 }
 

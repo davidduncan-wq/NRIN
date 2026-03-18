@@ -38,7 +38,7 @@ const demoFacilities: FacilityMatchingInput[] = [
     hasMATSignal: true,
     hasProfessionalProgramSignal: true,
     hasFamilyProgramSignal: false,
-    acceptedInsurance: ["aetna", "cigna", "self_pay"],
+    acceptedInsurance: ["blue_cross_blue_shield", "aetna", "cigna", "self_pay"],
     evidenceConfidence: 0.88,
   },
   {
@@ -87,11 +87,8 @@ export default function PatientMatchesPage() {
           </div>
         </div>
 
-                <MatchCardStack matches={viewModels} />
-
-             
-        </div>
-      
+        <MatchCardStack matches={viewModels} />
+      </div>
     </main>
   )
 }

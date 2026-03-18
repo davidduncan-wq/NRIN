@@ -21,7 +21,7 @@ export default function MatchCardStack({ matches }: { matches: MatchViewModel[] 
     const [open, setOpen] = useState(false)
 
     const nextIndex = (index + 1) % matches.length
-    const prevIndex = (index - 1 + matches.length) % matches.length
+    
 
     const current = matches[index]
     const next = matches[nextIndex]
@@ -131,14 +131,14 @@ export default function MatchCardStack({ matches }: { matches: MatchViewModel[] 
                                 </div>
 
                                 <div className="mt-6 space-y-3">
-                                    {current.reasons.slice(0, 4).map((reason) => (
+                                    {current.reasons.slice(0, 4).map((reason, reasonIndex) => (
                                         <button
-                                            key={reason}
+                                            key={`${current.id}-reason-${reasonIndex}-${reason.label}`}
                                             onClick={() => setOpen(true)}
                                             type="button"
                                             className="block w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-left text-sm leading-6 text-neutral-800 transition hover:border-neutral-300 hover:bg-neutral-100"
                                         >
-                                            {reason}
+                                            {reason.label}
                                         </button>
                                     ))}
                                 </div>
@@ -194,10 +194,10 @@ export default function MatchCardStack({ matches }: { matches: MatchViewModel[] 
                 </AnimatePresence>
             </div>
             <MatchDetailSheet
-  open={open}
-  onClose={() => setOpen(false)}
-  match={current}
-/>
+                open={open}
+                onClose={() => setOpen(false)}
+                match={current}
+            />
         </div>
     )
 }
