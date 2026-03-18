@@ -19,6 +19,17 @@ function formatLevelOfCare(level: string) {
     }
 }
 
+function getProgramEvidence(
+    facility: FacilityMatchingInput,
+    normalizedName: string,
+) {
+    const match = facility.rawProgramEvidence?.find(
+        (item: any) => item.normalizedName === normalizedName,
+    )
+
+    return match?.evidence?.[0]
+}
+
 export function buildMatchExplanation(
     patient: PatientMatchingInput,
     facility: FacilityMatchingInput,
@@ -46,10 +57,14 @@ export function buildMatchExplanation(
     }
 
     if (patient.needsDetox && facility.detectedLevelsOfCare.includes("detox")) {
+        const firstEvidence = getProgramEvidence(facility, "detox")
+
         reasons.push({
             label: "Offers detox support",
-            snippet: "Detox level of care detected in facility profile",
-            sourceUrl: "#detox",
+            snippet:
+                firstEvidence?.snippet ??
+                "Detox level of care detected in facility profile",
+            sourceUrl: firstEvidence?.pageUrl,
             sourceLabel: "Detox support",
         })
     }
@@ -64,19 +79,33 @@ export function buildMatchExplanation(
     }
 
     if (insurance.insuranceMatch && patient.insuranceCarrier) {
+        const carrier = patient.insuranceCarrier
+
+        const insuranceEvidenceMatch = facility.rawInsuranceEvidence?.find(
+            (item: any) => item.normalizedName === carrier,
+        )
+
+        const firstEvidence = insuranceEvidenceMatch?.evidence?.[0]
+
         reasons.push({
-            label: `Detected acceptance of ${patient.insuranceCarrier}`,
-            snippet: `${patient.insuranceCarrier} listed among accepted insurance providers`,
-            sourceUrl: "#insurance",
+            label: `Detected acceptance of ${carrier}`,
+            snippet:
+                firstEvidence?.snippet ??
+                `${carrier} listed among accepted insurance providers`,
+            sourceUrl: firstEvidence?.pageUrl,
             sourceLabel: "Insurance details",
         })
     }
 
     if (patient.requiresMAT && facility.hasMATSignal) {
+        const firstEvidence = getProgramEvidence(facility, "mat")
+
         reasons.push({
             label: "Shows medication-assisted treatment support",
-            snippet: "MAT support signal detected in facility profile",
-            sourceUrl: "#mat",
+            snippet:
+                firstEvidence?.snippet ??
+                "MAT support signal detected in facility profile",
+            sourceUrl: firstEvidence?.pageUrl,
             sourceLabel: "MAT support",
         })
     }
@@ -108,7 +137,9 @@ export function buildMatchExplanation(
     }
 
     if (patient.insuranceCarrier && !insurance.insuranceMatch) {
-        cautions.push(`Insurance compatibility with ${patient.insuranceCarrier} should be verified`)
+        cautions.push(
+            `Insurance compatibility with ${patient.insuranceCarrier} should be verified`,
+        )
     }
 
     return {

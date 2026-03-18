@@ -34,9 +34,13 @@ export type PatientMatchingInput = {
 }
 
 export type FacilityMatchingInput = {
+  logoUrl?: string
   facilityId: string
   facilityName: string
   state?: string
+  website?: string
+  city?: string
+  matcherSummary?: string
 
   detectedLevelsOfCare: LevelOfCare[]
   hasDualDiagnosisSignal?: boolean
@@ -46,6 +50,9 @@ export type FacilityMatchingInput = {
 
   acceptedInsurance: InsuranceCarrier[]
   evidenceConfidence?: number
+  rawProgramEvidence?: any[]
+  rawInsuranceEvidence?: any[]
+
 }
 
 export type HardFilterResult = {
@@ -97,6 +104,10 @@ export type MatchExplanation = {
 export type FacilityMatchResult = {
   facilityId: string
   facilityName: string
+  logoUrl?: string
+  website?: string
+  city?: string
+  matcherSummary?: string
   totalScore: number
   hardFilterPassed: boolean
   hardFilterReasons: string[]

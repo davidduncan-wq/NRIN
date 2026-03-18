@@ -1,4 +1,5 @@
 import MatchCardStack from "@/components/patient/MatchCardStack"
+import { fetchFacilityMatchingInputs } from "@/lib/matching/fetchFacilityMatches"
 import { buildMatchViewModel } from "@/lib/matching/buildMatchViewModel"
 import { matchPatientToFacilities } from "@/lib/matching/matchPatientToFacilities"
 import type {
@@ -55,8 +56,12 @@ const demoFacilities: FacilityMatchingInput[] = [
   },
 ]
 
-export default function PatientMatchesPage() {
-  const result = matchPatientToFacilities(demoPatient, demoFacilities)
+export default async function PatientMatchesPage() {
+  const fetchedFacilities = await fetchFacilityMatchingInputs()
+  const facilities =
+    fetchedFacilities.length > 0 ? fetchedFacilities : demoFacilities
+
+  const result = matchPatientToFacilities(demoPatient, facilities)
   const viewModels = result.matches.map(buildMatchViewModel)
 
   return (
