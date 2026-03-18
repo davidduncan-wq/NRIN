@@ -1,41 +1,58 @@
-import { scorePrograms } from "../src/lib/matching/scorePrograms"
+import { matchPatientToFacilities } from "../src/lib/matching/matchPatientToFacilities"
 import type {
   FacilityMatchingInput,
   PatientMatchingInput,
 } from "../src/lib/matching/types"
 
-const patientNeedsDetoxResidential: PatientMatchingInput = {
+const patient: PatientMatchingInput = {
   needsDetox: true,
   desiredLevelsOfCare: ["detox", "residential"],
   prefersDualDiagnosis: true,
+  requiresMAT: true,
+  insuranceCarrier: "blue_cross_blue_shield",
+  wantsProfessionalProgram: false,
+  wantsFamilyProgram: true,
 }
 
-const hazeldenLikeFacility: FacilityMatchingInput = {
-  facilityId: "hazelden-betty-ford",
-  detectedLevelsOfCare: ["detox", "residential", "php", "iop", "outpatient"],
-  hasDualDiagnosisSignal: true,
-  evidenceConfidence: 0.9,
-}
+const facilities: FacilityMatchingInput[] = [
+  {
+    facilityId: "hazelden-betty-ford",
+    facilityName: "Hazelden Betty Ford",
+    state: "CA",
+    detectedLevelsOfCare: ["detox", "residential", "php", "iop", "outpatient"],
+    hasDualDiagnosisSignal: true,
+    hasMATSignal: true,
+    hasProfessionalProgramSignal: true,
+    hasFamilyProgramSignal: true,
+    acceptedInsurance: ["blue_cross_blue_shield", "aetna", "cigna", "self_pay"],
+    evidenceConfidence: 0.92,
+  },
+  {
+    facilityId: "oasis-recovery",
+    facilityName: "Oasis Recovery",
+    state: "CA",
+    detectedLevelsOfCare: ["residential", "php", "iop", "outpatient"],
+    hasDualDiagnosisSignal: true,
+    hasMATSignal: false,
+    hasProfessionalProgramSignal: false,
+    hasFamilyProgramSignal: true,
+    acceptedInsurance: ["aetna", "cigna", "self_pay"],
+    evidenceConfidence: 0.74,
+  },
+  {
+    facilityId: "outpatient-only",
+    facilityName: "Outpatient Only Center",
+    state: "CA",
+    detectedLevelsOfCare: ["iop", "outpatient"],
+    hasDualDiagnosisSignal: false,
+    hasMATSignal: false,
+    hasProfessionalProgramSignal: false,
+    hasFamilyProgramSignal: false,
+    acceptedInsurance: ["self_pay"],
+    evidenceConfidence: 0.55,
+  },
+]
 
-const oasisLikeFacility: FacilityMatchingInput = {
-  facilityId: "oasis-recovery",
-  detectedLevelsOfCare: ["residential", "php", "iop", "outpatient"],
-  hasDualDiagnosisSignal: true,
-  evidenceConfidence: 0.7,
-}
+const result = matchPatientToFacilities(patient, facilities)
 
-const outpatientOnlyFacility: FacilityMatchingInput = {
-  facilityId: "outpatient-only",
-  detectedLevelsOfCare: ["iop", "outpatient"],
-  hasDualDiagnosisSignal: false,
-  evidenceConfidence: 0.5,
-}
-
-console.log("\n=== Hazelden-like facility ===")
-console.log(scorePrograms(patientNeedsDetoxResidential, hazeldenLikeFacility))
-
-console.log("\n=== Oasis-like facility ===")
-console.log(scorePrograms(patientNeedsDetoxResidential, oasisLikeFacility))
-
-console.log("\n=== Outpatient-only facility ===")
-console.log(scorePrograms(patientNeedsDetoxResidential, outpatientOnlyFacility))
+console.log(JSON.stringify(result, null, 2))

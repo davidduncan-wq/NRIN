@@ -1,3 +1,5 @@
+Read NEXT_SESSION_BOOT.md first before anything else.
+
 You are the receiving AI for the NRIN project.
 
 Before doing any work, read these files in the NRIN repo in this exact order:

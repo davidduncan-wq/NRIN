@@ -1,14 +1,18 @@
 import { applyHardFilters } from "./hardFilters"
 import type {
   FacilityMatchingInput,
+  HardFilterResult,
   PatientMatchingInput,
-  ProgramMatchResult,
+  ProgramScoreBreakdown,
 } from "./types"
 
 export function scorePrograms(
   patient: PatientMatchingInput,
   facility: FacilityMatchingInput,
-): ProgramMatchResult {
+): {
+  hardFilter: HardFilterResult
+  score: ProgramScoreBreakdown
+} {
   const hardFilter = applyHardFilters(patient, facility)
 
   const facilityLevels = new Set(facility.detectedLevelsOfCare)
@@ -26,9 +30,7 @@ export function scorePrograms(
   const detoxScore =
     patient.needsDetox && facilityLevels.has("detox")
       ? 15
-      : !patient.needsDetox
-        ? 0
-        : 0
+      : 0
 
   const dualDiagnosisScore =
     patient.prefersDualDiagnosis && facility.hasDualDiagnosisSignal ? 5 : 0
