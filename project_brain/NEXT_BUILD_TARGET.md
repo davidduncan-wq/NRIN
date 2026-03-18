@@ -1,93 +1,113 @@
-# Next Build Target
+# NRIN — NEXT BUILD TARGET
 
-## Title
-NRIN Treatment Center Intake + Case State Machine
+## Phase
+Patient Matching → Match Presentation V1
 
 ## Objective
-Build the next major operational layer of NRIN:
-the treatment-center-side intake and the canonical case state machine that governs referral progression from patient submission to admission or escalation.
+Transform the current working patient match experience into a high-trust, premium, facility-first presentation surface.
 
-## Why This Matters
-The current system has intake and referral foundations, but the real engine of NRIN is the operational flow that begins after a patient is matched.
+The matching system already works.
 
-That engine is:
+The next task is to make the experience feel:
+- calm
+- trustworthy
+- humane
+- premium
 
-Patient Intake
-→ Match Engine
-→ Top 3–5 Facilities
-→ Tinder-style facility selection
-→ Treatment Center Pre-Screen
-→ Accept / Reject
-→ Transportation + Insurance + Bed
-→ Clinical Escalation
+without changing the underlying matcher.
 
-Without this layer, NRIN is only a form and referral surface.
-With it, NRIN becomes a treatment placement operating system.
+---
 
-## In Scope
-- Define canonical case states
-- Define allowed state transitions
-- Build treatment center pre-screen intake flow
-- Connect facility review actions to case state updates
-- Prepare operational handling for:
-  - acceptance
-  - rejection
-  - bed availability
-  - transportation coordination
-  - insurance barriers
-  - clinical escalation
+## Current Truth
 
-## Out of Scope
-- Full production automation for every downstream task
-- Deep billing workflows
-- Final analytics/reporting layer
-- Broad UI redesign unrelated to this milestone
-- Unrelated refactors
+### Working
+- real `facility_intelligence` fetch
+- real `facility_sites` identity join
+- evidence-backed explanations
+- detail sheet with real snippets + URLs
+- demo fallback preserved
 
-## Expected Functional Shape
-1. Patient submits intake
-2. System runs match logic
-3. System presents top 3–5 facilities
-4. Facility selection is captured
-5. Treatment center completes pre-screen / review
-6. Case is updated through explicit state transitions
-7. Outcome is visible and operationally actionable
+### Not yet strong enough
+- visual language still feels too much like AI/SaaS product grammar
+- match card still feels too much like a widget/component
+- facility presentation is not yet brochure-quality
+- explanation hierarchy still needs refinement
 
-## Candidate Canonical States
-These are directional and may be refined during implementation:
+---
 
-- NEW_INTAKE
-- MATCHED
-- FACILITY_SELECTED
-- FACILITY_REVIEWING
-- ACCEPTED
-- REJECTED
-- TRANSPORT_PENDING
-- BED_CONFIRMED
-- INSURANCE_PENDING
-- CLINICAL_ESCALATION
-- ADMITTED
-- CLOSED
+## Core Rule
 
-## Acceptance Criteria
-This milestone is successful when:
+The card should sell the facility.
 
-- treatment-center-side intake/review exists in the repo
-- case state progression is explicit and structured
-- referral movement is no longer ad hoc
-- the next AI session can clearly identify the active lifecycle model
-- the architecture remains consistent with existing NRIN design and repo structure
+The explanation should sell the recommendation.
 
-## Implementation Notes
-- Preserve the existing design system
-- Follow surgical edit rules
-- Avoid broad rewrites
-- Keep GitHub as source of truth
-- Align implementation with:
-  - project_brain/NRIN_CANONICAL_STATE.md
-  - project_brain/NRIN_SYSTEM_MAP.md
-  - project_brain/CURRENT_HANDOFF.md
-  - project_brain/NRIN_PRODUCT_ARCHITECTURE.md
+The evidence should defend the explanation.
 
-## Owner
-Current active milestone for all new AI sessions unless explicitly replaced by a newer target.
+---
+
+## Build Priorities
+
+### 1. View model as presentation boundary
+File:
+- `src/lib/matching/buildMatchViewModel.ts`
+
+Ensure this layer owns:
+- title
+- subtitle
+- location
+- optional logo
+- optional hero image
+- CTA labels
+- humane explanation summary
+
+### 2. Facility-first card surface
+File:
+- `src/components/patient/MatchCardStack.tsx`
+
+Render only what belongs on the primary surface:
+- identity
+- reassurance
+- action
+- subtle navigation
+
+No score leakage.
+No reason pills.
+No debug-style boxes.
+
+### 3. Explanation-first detail sheet
+File:
+- `src/components/patient/MatchDetailSheet.tsx`
+
+Hierarchy:
+1. humane explanation summary
+2. structured reasons
+3. evidence links
+
+### 4. Preserve future brochure path
+Current pass should remain compatible with later:
+- logos
+- hero imagery
+- brochure-level facility assets
+
+---
+
+## Non-Goals
+
+Do NOT:
+- change scoring
+- change filters
+- change crawler
+- build crawler v2
+- widen into other product surfaces
+
+---
+
+## Success Criteria
+
+When this pass is done, the user should feel:
+
+“This looks like a real place I could go.”
+
+Not:
+
+“This is an AI system recommending something.”

@@ -1,200 +1,415 @@
-# NRIN — CANONICAL ENGINEERING HANDOFF
+# NRIN — ENGINEERING HANDOFF
 
-**Date:** 2026-03-06  
-**Project:** National Recovery Intake Network (NRIN)  
-**Owner:** David Duncan
+## Session Outcome
 
----
+This session moved NRIN patient matching from a mostly demo-style surface to a real-data, evidence-backed matching flow.
 
-## YOU ARE THE RECEIVING AI
+By end of session:
 
-You are receiving an engineering handoff for the NRIN project.
-
-Do NOT create a new handoff.  
-Do NOT summarize this handoff.  
-Do NOT rewrite this handoff.
-
-Your job is to:
-1. Read this file completely
-2. Treat it as current project context
-3. Continue work from the state described below
-
-GitHub is the canonical source of truth.
-
----
-
-## 1. Current Repository State
-
-### Canonical Internal Repo
-- Repo: `NRIN`
-- Visibility: Private
-- GitHub: `https://github.com/davidduncan-wq/NRIN`
-
-### Public Demo Repo
-- Repo: `NRIN-demo`
-- Visibility: Public
-- GitHub: `https://github.com/davidduncan-wq/NRIN-demo`
-
-The repos are intentionally separate.
-
-`NRIN` is the canonical engineering repo.  
-`NRIN-demo` is an isolated public demo repo.
+- `/patient/matches` uses real `facility_intelligence` data with demo fallback
+- facility identity is joined from `facility_sites`
+- real facility names now display instead of `matcher_summary` as headline
+- match reasons support:
+  - `label`
+  - `snippet`
+  - `sourceUrl`
+  - `sourceLabel`
+  - `anchorId`
+- insurance evidence is flowing from normalized crawler evidence into match explanation
+- detox and MAT evidence are also flowing from normalized crawler evidence into match explanation
+- real matching against Supabase was validated through `scripts/testMatching.ts`
+- patient matches UI is functional on desktop and mobile
+- design quality is still rough and is the next focus
 
 ---
 
-## 2. Current Local Development State
+## Most Important Product Breakthrough
 
-Expected local folders:
+NRIN now has the beginnings of a true evidence-backed placement engine.
 
-```text
-Desktop/
-  NRIN
-  NRIN-demo
-  Current working repo is NRIN.
-NRIN local Git status was confirmed clean and synced with GitHub.
-Confirmed state:
-On branch main
-Your branch is up to date with 'origin/main'.
+The system can now show:
 
-nothing to commit, working tree clean
-1d79023 Add patient intake components
+- the match
+- the explanation
+- the actual supporting snippet from the facility site
+- the page URL where the evidence came from
 
-3. Strategic Repo Roles
-NRIN
-Use for:
-cleaned-up architecture
-internal product development
-real workflows
-refactoring
-future production-grade implementation
-NRIN-demo
-Use for:
-investor/stakeholder presentations
-public walkthroughs
-isolated demo behavior
-polished visual reference points
-Do not treat NRIN-demo as the engineering source of truth.
-4. Design Situation
+This is no longer just a scoring demo.
+
+---
+
+## What Changed
+
+### 1. View model became evidence-aware
+
+File:
+- `src/lib/matching/buildMatchViewModel.ts`
+
+Changes:
+- `reasons` are now normalized into structured reason objects
+- `MatchViewModel` now supports:
+  - `presentation`
+  - `explanation`
+- this creates the correct boundary between:
+  - matcher logic
+  - presentation shaping
+  - UI rendering
+
+Current direction:
+- presentation should be shaped in the view model
+- UI should render the shaped presentation
+- matcher should remain logic-only
+
+---
+
+### 2. Matching types expanded safely
+
+File:
+- `src/lib/matching/types.ts`
+
+Key additions:
+- `MatchReasonEvidence`
+- optional passthrough identity fields on `FacilityMatchingInput`
+- optional passthrough identity fields on `FacilityMatchResult`
+- optional evidence arrays:
+  - `rawProgramEvidence`
+  - `rawInsuranceEvidence`
+
+Important note:
+During the session, a bad type line was briefly introduced:
+- `logoUrl: undefined,`
+
+That was incorrect in a type definition.
+Correct form is:
+- `logoUrl?: string`
+
+Current rule:
+Types define shape only. No runtime values inside type declarations.
+
+---
+
+### 3. Explanation layer now supports real crawler evidence
+
+File:
+- `src/lib/matching/buildMatchExplanation.ts`
+
 Current state:
-NRIN
-cleaner codebase
-more canonical engineering direction
-less polished visual design in some areas
-NRIN-demo
-better visual polish in some areas
-more presentation-friendly
-not the canonical engineering base
-Required rule
-AI may inspect NRIN-demo and selectively port visual elements into NRIN, but only surgically.
-Never:
+- insurance reason uses real evidence snippet + page URL
+- detox reason uses real evidence snippet + page URL
+- MAT reason uses real evidence snippet + page URL
+- other reasons still partly rely on fallback copy
 
-overwrite NRIN with NRIN-demo
-merge repos wholesale
-let demo structure dictate core engineering decisions
-5. Technology Stack
-Current stack:
-Next.js 16
-App Router
-TypeScript
-TailwindCSS
-Supabase
-Vercel
-6. Major Work Themes Completed So Far
-Project work across recent sessions has included:
-patient intake wizard development
-mobile-first intake UI refinement
-reusable UI primitive development
-checkmark / completion state patterns
-facility referral workflow work
-Supabase integration work
-demo stabilization for stakeholder viewing
-repo continuity hardening through GitHub
-7. Current Product Reality
-The public-facing demo is considered good enough for stakeholder/investor viewing for now.
-Primary engineering focus should now remain on the internal NRIN repo.
-
-That means:
-
-continue internal development in NRIN
-keep NRIN-demo isolated
-borrow design selectively when useful
-8. Continuity Risk Notes
-Prior sessions suffered from:
-browser slowdown
-continuity drift across long chats
-stale code snippets
-confusion between demo and internal repos
-This project_brain structure is intended to reduce those problems.
-Future AI must rely on:
-
-GitHub
-project_brain files
-confirmed local repo state
-not on vague chat memory.
-9. Developer Preferences
-David prefers:
-engineering-grade guidance
-exact commands
-exact file paths
-low fluff
-surgical edits
-preservation of continuity
-GitHub-centered workflow
-When instructing David, be operational and precise.
-10. Immediate Direction for the Next AI
-Default assumption:
-work in NRIN
-treat it as canonical
-use NRIN-demo only as selective design reference
-Good next tasks include:
-strengthening canonical docs in project_brain
-continuing internal app development
-selectively restoring visual polish from NRIN-demo into NRIN
-maintaining architectural cleanliness while improving UI quality
-11. Standing Non-Negotiables
-GitHub is canonical after confirmed push
-NRIN is the engineering source of truth
-NRIN-demo is not the engineering source of truth
-do not merge repos wholesale
-prefer surgical edits
-end major sessions with updated canonical handoff if David asks
-12. One-Line Executive Summary
-NRIN now has a clean two-repo structure: NRIN is the private canonical engineering repo, and NRIN-demo is the separate public demo repo; future work should continue in NRIN, with only selective design borrowing from NRIN-demo.
-
-Save with **Cmd+S**.
+This file is now the bridge between:
+- matcher output
+- crawler evidence
+- humane explanation surface
 
 ---
 
-# Terminal
+### 4. Real Supabase adapter now exists for matches
 
-After all three files are saved, run:
+File:
+- `src/lib/matching/fetchFacilityMatches.ts`
 
-```bash
-git status
-You should see the new/modified files.
-Then run:
+Purpose:
+- fetch `facility_intelligence`
+- join identity from `facility_sites`
+- map into `FacilityMatchingInput[]`
 
-git add project_brain/00_READ_ME_FIRST.md project_brain/NRIN_REPO_STRATEGY.md project_brain/NRIN_ENGINEERING_HANDOFF.md
-git commit -m "Add canonical project brain docs"
-git push
-Browser
-No browser step required for this slice.
-Success looks like:
+Important mapping truths:
+- `facility_intelligence` = capabilities + evidence
+- `facility_sites` = identity
 
-files exist in project_brain
-commit succeeds
-push succeeds
-GitHub now contains the canonical docs
-Next move after this
-Paste me the output of:
-git status
-git log -1 --oneline
-Then we’ll do the next three files:
-NRIN_CANONICAL_STATE.md
-NRIN_SURGICAL_EDIT_RULES.md
-NRIN_PRODUCT_VISION.md
+`facility_intelligence` contains:
+- `offers_*`
+- `detected_program_types`
+- `detected_insurance_carriers`
+- `matcher_summary`
+- `confidence_score`
 
+`facility_sites` contains:
+- `name`
+- `website`
+- `city`
 
+Important join note:
+The `facility_sites` join was validated directly from Supabase.
+Returned shape was an object in the observed query result, not a missing relation.
 
+---
 
+### 5. `/patient/matches` now uses real data with fallback
 
+File:
+- `src/app/patient/matches/page.tsx`
+
+Current behavior:
+- fetches real facilities through `fetchFacilityMatchingInputs()`
+- falls back to `demoFacilities` if fetch returns nothing
+
+This route should remain:
+- stable
+- presentational
+- not a debugging harness
+
+---
+
+### 6. `scripts/testMatching.ts` became the real-data harness
+
+File:
+- `scripts/testMatching.ts`
+
+This was used to validate matching against real Supabase rows before trusting the UI.
+
+Key result from session:
+- fetched 100 rows
+- mapped 100 rows
+- found 52 matches for test patient
+
+This proved:
+- hard filters are working
+- insurance normalization is working
+- real matching is working
+- evidence arrays contain usable snippets and URLs
+
+Important continuity rule:
+Use the script for truth-finding before using the UI for interpretation.
+
+---
+
+## Data Model Truths Confirmed
+
+### `facility_intelligence` is not the presentation table
+
+It contains:
+- capability booleans
+- normalized evidence arrays
+- matcher summary
+- confidence score
+
+It does not contain:
+- polished brochure identity
+- hero assets
+- usable premium imagery by default
+
+### `facility_sites` is the identity table
+
+It contains:
+- `id`
+- `name`
+- `website`
+- `city`
+- location/contact-style identity fields
+
+Correct architecture:
+- `facility_intelligence` = capability + evidence
+- `facility_sites` = identity
+- future asset layer = logo / hero image / brochure assets
+
+---
+
+## Design/Product Insight Established
+
+A major design principle was clarified this session:
+
+### The card should sell the facility
+Not show the system’s internal reasoning
+
+### The explanation should sell the recommendation
+Not expose matcher math
+
+### The evidence should defend the explanation
+Only after the user wants to drill down
+
+This means the correct hierarchy is:
+
+1. facility presentation
+2. human explanation
+3. evidence / links
+
+Not:
+1. reasons
+2. scores
+3. system signals
+
+---
+
+## Design Philosophy Established
+
+NRIN should not feel like:
+- ChatGPT
+- an AI copilot
+- a dashboard
+- a reasoning console
+- a debug surface
+
+NRIN should feel closer to:
+- Apple product page
+- luxury brochure
+- concierge medical referral
+- private placement memo
+
+The system must feel:
+- calm
+- confident
+- human
+- grounded
+- non-urgent
+
+Not:
+- machine-explanatory
+- pill-heavy
+- score-heavy
+- “AI-looking”
+
+---
+
+## Important Design Discovery
+
+Real logo testing was attempted.
+
+What was learned:
+- logos/favicons are useful identity support
+- logos alone do not create a premium surface
+- low-resolution logos can feel underwhelming when oversized
+- logos should be supporting identity, not hero content
+
+Strategic conclusion:
+- brochure layer remains the right long-game
+- logo is useful
+- hero/media asset layer will matter more than favicon alone
+
+---
+
+## Match Presentation Spec Was Defined
+
+A new brain/spec direction was created:
+
+Suggested file:
+- `project_brain/NRIN_MATCH_PRESENTATION_V1.md`
+
+That spec establishes:
+- facility-first presentation
+- explanation on demand
+- evidence one layer deeper
+- identity > reassurance > CTA > explanation > verification
+
+The next chat should read and use that spec before doing more UI work.
+
+---
+
+## Current UX Reality
+
+### Working
+- real match data
+- real facility names
+- evidence-backed detail sheet
+- explanation CTA direction established
+- desktop and mobile functional
+
+### Not yet good enough
+- visual language still feels too much like an AI/SaaS tool
+- card/page composition still carries OpenAI-like fingerprints
+- typography and layout need a stronger non-widget grammar
+- premium brochure feel is not there yet
+
+---
+
+## Architectural Continuity Rules
+
+Do not forget these:
+
+### 1. Presentation shaping belongs in the view model
+Not in JSX improvisation
+
+### 2. UI components should render, not invent design language
+Design intent should come from:
+- brain/spec
+- view model
+- then component
+
+### 3. Test before wiring
+Especially when crossing:
+- type boundaries
+- result shapes
+- joined data
+- asset fields
+
+### 4. Do not widen scope
+Do not pivot to crawler v2 right now.
+Current answer remains:
+- keep current crawler
+- finish the design/presentation layer first
+
+---
+
+## Immediate Next Priority
+
+### NOT:
+- more crawler work
+- more scoring work
+- more matching logic
+
+### YES:
+- implement Match Presentation V1 cleanly
+- preserve the evidence pipeline
+- preserve real-data adapter
+- reduce AI-looking UI patterns
+- move toward facility-first, brochure-ready presentation
+
+---
+
+## Files Most Relevant Next Session
+
+### Brain / spec
+- `project_brain/NRIN_MATCH_PRESENTATION_V1.md`
+- `project_brain/NRIN_DESIGN_SYSTEM.md`
+- `project_brain/NEXT_BUILD_TARGET.md`
+
+### Data / view model
+- `src/lib/matching/types.ts`
+- `src/lib/matching/fetchFacilityMatches.ts`
+- `src/lib/matching/buildMatchViewModel.ts`
+- `src/lib/matching/buildMatchExplanation.ts`
+- `src/lib/matching/matchPatientToFacilities.ts`
+
+### UI
+- `src/app/patient/matches/page.tsx`
+- `src/components/patient/MatchCardStack.tsx`
+- `src/components/patient/MatchDetailSheet.tsx`
+
+### Harness
+- `scripts/testMatching.ts`
+
+---
+
+## Warning For Next AI
+
+Do not keep making design decisions directly in Tailwind class edits without reference to the presentation spec.
+
+The drift risk is:
+- endless cosmetic iteration
+- component-level taste decisions
+- reintroducing AI/SaaS grammar
+- breaking the separation between presentation and rendering
+
+The correct order is:
+1. brain/spec
+2. view model
+3. component render
+
+---
+
+## Executive Summary
+
+NRIN now has:
+
+- real-data matching
+- evidence-backed explanations
+- identity joined from canonical facility table
+- a functioning patient match experience
+
+The next phase is not more intelligence work.
+
+The next phase is:
+**turning the working match system into a facility-first, humane, premium placement surface without breaking the underlying evidence pipeline.**
