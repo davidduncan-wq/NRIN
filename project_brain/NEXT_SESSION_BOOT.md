@@ -228,3 +228,5 @@ Do:
 ## One-Line Mission
 
 Turn the working evidence-backed match experience into a calm, premium, facility-first presentation surface without breaking the underlying system.
+
+Before making any file changes, read NRIN_FILE_TREE.md to understand project structure and read NRIN_CODE_MAP.md. Do not guess paths or responsibilities.

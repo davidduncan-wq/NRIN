@@ -255,4 +255,5 @@ core repositories change
 Session work, bug fixes, and next tasks should **never be recorded here**.
 
 Those belong in:
-CURRENT_HANDOFF.md
+CURRENT_HANDOFF.md- NRIN_ENGINEERING_HANDOFF_2026-03-18_MATCH_V1_COMPLETE.md
+- NEXT_SESSION_BOOT_2026-03-18_BROCHURE_PHASE.md

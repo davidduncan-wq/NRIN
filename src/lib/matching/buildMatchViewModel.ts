@@ -14,16 +14,16 @@ export type MatchViewModel = {
     score: number
     reasons: MatchReasonViewModel[]
     cautions: string[]
-    badges: string[]
     presentation: {
         title: string
         subtitle?: string
         location?: string
         logoUrl?: string
         heroImageUrl?: string
-        scoreLabel: string
         primaryCtaLabel: string
         explanationCtaLabel: string
+        reassuranceLine: string
+        eyebrow?: string
     }
     explanation: {
         summary: string
@@ -53,71 +53,91 @@ function normalizeReason(
     }
 }
 
+function buildEyebrow(match: FacilityMatchResult) {
+    if (match.city) return match.city
+    return undefined
+}
+
 function buildSubtitle(match: FacilityMatchResult) {
+    if (
+        match.breakdown.programs.detoxScore > 0 &&
+        match.breakdown.programs.levelMatches >= 2
+    ) {
+        return "Structured detox and continued care."
+    }
+
+    if (match.breakdown.programs.detoxScore > 0) {
+        return "Detox support with continued care options."
+    }
+
     if (match.breakdown.programs.levelMatches >= 2) {
-        return "High alignment with requested care"
+        return "Strong alignment with your requested care."
     }
 
     if (match.breakdown.programs.levelMatches === 1) {
-        return "Promising alignment with requested care"
+        return "Aligned with a key part of your care needs."
     }
 
-    return "Recommended treatment option"
+    return "A credible treatment option."
+}
+
+function buildReassuranceLine(match: FacilityMatchResult) {
+    if (
+        match.breakdown.insurance.insuranceMatch &&
+        match.breakdown.specialties.matScore > 0
+    ) {
+        return "Insurance accepted. Medication-supported care available."
+    }
+
+    if (match.breakdown.insurance.insuranceMatch) {
+        return "Insurance accepted."
+    }
+
+    if (match.breakdown.specialties.matScore > 0) {
+        return "Medication-supported care available."
+    }
+
+    if (match.breakdown.specialties.familyProgramScore > 0) {
+        return "Family support available."
+    }
+
+    return "Established treatment setting."
 }
 
 function buildExplanationSummary(match: FacilityMatchResult) {
     const parts: string[] = []
 
     if (match.breakdown.programs.detoxScore > 0) {
-        parts.push(
-            "Based on what you shared, a supervised detox may be an important first step.",
-        )
+        parts.push("Detox support is available.")
     }
 
-    if (match.breakdown.programs.levelMatches > 0) {
-        parts.push(
-            `This option appears to match ${match.breakdown.programs.levelMatches} of your requested levels of care.`,
-        )
+    if (match.breakdown.programs.levelMatches >= 2) {
+        parts.push("Strong alignment with your requested level of care.")
+    } else if (match.breakdown.programs.levelMatches === 1) {
+        parts.push("Aligned with an important part of your care needs.")
     }
 
     if (match.breakdown.insurance.insuranceMatch) {
-        parts.push("It also appears to work with your insurance.")
+        parts.push("Accepts your insurance.")
     }
 
     if (match.breakdown.specialties.matScore > 0) {
-        parts.push("Medication-assisted treatment support appears to be available.")
+        parts.push("Medication-assisted treatment is available.")
     }
 
     if (match.breakdown.specialties.familyProgramScore > 0) {
-        parts.push("Family support programming also appears to be available.")
+        parts.push("Family support programming is available.")
     }
 
     if (parts.length === 0) {
-        return "This option appears to align with several of the needs you shared."
+        return "Aligned with several of your care needs."
     }
 
     return parts.join(" ")
 }
 
 export function buildMatchViewModel(match: FacilityMatchResult): MatchViewModel {
-    const badges: string[] = []
     const reasons = match.explanation.reasons.map(normalizeReason)
-
-    if (match.breakdown.programs.totalScore > 0) {
-        badges.push(`Programs ${match.breakdown.programs.totalScore}`)
-    }
-
-    if (match.breakdown.insurance.score > 0) {
-        badges.push(`Insurance ${match.breakdown.insurance.score}`)
-    }
-
-    if (match.breakdown.specialties.totalScore > 0) {
-        badges.push(`Specialties ${match.breakdown.specialties.totalScore}`)
-    }
-
-    if (match.breakdown.confidence.score > 0) {
-        badges.push(`Confidence ${match.breakdown.confidence.score}`)
-    }
 
     return {
         id: match.facilityId,
@@ -125,16 +145,16 @@ export function buildMatchViewModel(match: FacilityMatchResult): MatchViewModel 
         score: match.totalScore,
         reasons,
         cautions: match.explanation.cautions,
-        badges,
         presentation: {
             title: match.facilityName,
             subtitle: buildSubtitle(match),
             location: match.city,
             logoUrl: match.logoUrl,
             heroImageUrl: undefined,
-            scoreLabel: `${match.totalScore}`,
-            primaryCtaLabel: "Choose this facility",
+            primaryCtaLabel: "Explore this option",
             explanationCtaLabel: "Why this may be a strong fit for you",
+            reassuranceLine: buildReassuranceLine(match),
+            eyebrow: buildEyebrow(match),
         },
         explanation: {
             summary: buildExplanationSummary(match),

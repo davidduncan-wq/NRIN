@@ -18,6 +18,21 @@ function formatLevelOfCare(level: string) {
             return level.charAt(0).toUpperCase() + level.slice(1)
     }
 }
+function formatInsuranceCarrier(carrier: string) {
+    switch (carrier) {
+        case "blue_cross_blue_shield":
+            return "Blue Cross Blue Shield"
+        case "united_healthcare":
+            return "United Healthcare"
+        case "self_pay":
+            return "Self-pay"
+        default:
+            return carrier
+                .split("_")
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(" ")
+    }
+}
 
 function getProgramEvidence(
     facility: FacilityMatchingInput,
@@ -46,10 +61,10 @@ export function buildMatchExplanation(
 
     if (programs.levelMatches > 0) {
         reasons.push({
-            label: `Matches ${programs.levelMatches} of ${programs.levelRequested} requested levels of care`,
+            label: "Aligned with your requested level of care",
             snippet:
                 matchedLevels.length > 0
-                    ? `Matched levels: ${matchedLevels.map(formatLevelOfCare).join(", ")}`
+                    ? `Includes: ${matchedLevels.map(formatLevelOfCare).join(", ")}`
                     : undefined,
             sourceUrl: "#levels-of-care",
             sourceLabel: "Levels of care",
@@ -71,8 +86,8 @@ export function buildMatchExplanation(
 
     if (patient.prefersDualDiagnosis && facility.hasDualDiagnosisSignal) {
         reasons.push({
-            label: "Shows dual-diagnosis support",
-            snippet: "Dual-diagnosis support signal detected in facility profile",
+            label: "Dual-diagnosis support available",
+            snippet: "Support for co-occurring mental health and substance use needs is available.",
             sourceUrl: "#dual-diagnosis",
             sourceLabel: "Dual-diagnosis support",
         })
@@ -88,10 +103,10 @@ export function buildMatchExplanation(
         const firstEvidence = insuranceEvidenceMatch?.evidence?.[0]
 
         reasons.push({
-            label: `Detected acceptance of ${carrier}`,
+            label: `Accepts ${formatInsuranceCarrier(carrier)}`,
             snippet:
                 firstEvidence?.snippet ??
-                `${carrier} listed among accepted insurance providers`,
+                `${formatInsuranceCarrier(carrier)} is listed among accepted insurance providers.`,
             sourceUrl: firstEvidence?.pageUrl,
             sourceLabel: "Insurance details",
         })
@@ -101,10 +116,10 @@ export function buildMatchExplanation(
         const firstEvidence = getProgramEvidence(facility, "mat")
 
         reasons.push({
-            label: "Shows medication-assisted treatment support",
+            label: "Medication-assisted treatment available",
             snippet:
                 firstEvidence?.snippet ??
-                "MAT support signal detected in facility profile",
+                "Medication-assisted treatment support is available.",
             sourceUrl: firstEvidence?.pageUrl,
             sourceLabel: "MAT support",
         })
@@ -112,8 +127,8 @@ export function buildMatchExplanation(
 
     if (patient.wantsProfessionalProgram && facility.hasProfessionalProgramSignal) {
         reasons.push({
-            label: "Shows professional-track programming",
-            snippet: "Professional program signal detected in facility profile",
+            label: "Professional program available",
+            snippet: "A professional-focused treatment track is available.",
             sourceUrl: "#professional-program",
             sourceLabel: "Professional program",
         })
@@ -121,24 +136,24 @@ export function buildMatchExplanation(
 
     if (patient.wantsFamilyProgram && facility.hasFamilyProgramSignal) {
         reasons.push({
-            label: "Shows family-program support",
-            snippet: "Family program signal detected in facility profile",
+            label: "Family support available",
+            snippet: "Family programming and support services are available.",
             sourceUrl: "#family-program",
             sourceLabel: "Family program",
         })
     }
 
     if (patient.prefersDualDiagnosis && !facility.hasDualDiagnosisSignal) {
-        cautions.push("No strong dual-diagnosis signal detected")
+        cautions.push("Dual-diagnosis support should be confirmed.")
     }
 
     if (patient.requiresMAT && !facility.hasMATSignal) {
-        cautions.push("No strong MAT signal detected")
+        cautions.push("Medication-assisted treatment availability should be confirmed.")
     }
 
     if (patient.insuranceCarrier && !insurance.insuranceMatch) {
         cautions.push(
-            `Insurance compatibility with ${patient.insuranceCarrier} should be verified`,
+            `Insurance acceptance for ${formatInsuranceCarrier(patient.insuranceCarrier)} should be confirmed.`,
         )
     }
 
