@@ -22,6 +22,29 @@ export type InsuranceCarrier =
   | "self_pay"
   | "unknown"
 
+export type LifeFitProfile = {
+  captureMode: "" | "full" | "skip"
+
+  constraints: {
+    needsToStayNearFamily?: boolean
+    needsToStayNearWork?: boolean
+    legalPressurePresent?: boolean
+  }
+
+  preferences: {
+    wantsDistanceFromHome?: boolean
+    preferredEnvironment?: string
+    privacyImportant?: boolean
+  }
+
+  signals: {
+    familyProgramDesired?: boolean
+    professionalTrackDesired?: boolean
+  }
+
+  narrativeSummary: string
+}
+
 export type PatientMatchingInput = {
   needsDetox?: boolean
   desiredLevelsOfCare: LevelOfCare[]
@@ -31,6 +54,7 @@ export type PatientMatchingInput = {
   state?: string
   wantsProfessionalProgram?: boolean
   wantsFamilyProgram?: boolean
+  lifeFitProfile?: LifeFitProfile
 }
 
 export type FacilityMatchingInput = {
@@ -52,7 +76,6 @@ export type FacilityMatchingInput = {
   evidenceConfidence?: number
   rawProgramEvidence?: any[]
   rawInsuranceEvidence?: any[]
-
 }
 
 export type HardFilterResult = {

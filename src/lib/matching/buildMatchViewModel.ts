@@ -19,11 +19,20 @@ export type MatchViewModel = {
         subtitle?: string
         location?: string
         logoUrl?: string
+        recommendationSourceLabel: "Our recommendation",
         heroImageUrl?: string
         primaryCtaLabel: string
         explanationCtaLabel: string
         reassuranceLine: string
         eyebrow?: string
+        scoreLabel: string
+    }
+    brochure: {
+        atAGlance: string[]
+        strengths: MatchReasonViewModel[]
+        watchouts: string[]
+        nextStep: string
+        supportingInfo: MatchReasonViewModel[]
     }
     explanation: {
         summary: string
@@ -35,6 +44,53 @@ export type MatchViewModel = {
         specialtiesScore: number
         confidenceScore: number
     }
+}
+
+function buildScoreLabel(match: FacilityMatchResult) {
+    if (match.totalScore >= 85) return "Strong match"
+    if (match.totalScore >= 70) return "Promising option"
+    if (match.totalScore >= 55) return "Worth exploring"
+    return "Possible fit"
+}
+
+function buildAtAGlance(match: FacilityMatchResult) {
+    const items: string[] = []
+
+    if (match.breakdown.programs.detoxScore > 0) {
+        items.push("Detox available")
+    }
+
+    if (match.breakdown.programs.levelMatches >= 2) {
+        items.push("Multiple levels of care")
+    } else if (match.breakdown.programs.levelMatches === 1) {
+        items.push("Appropriate level of care")
+    }
+
+    if (match.breakdown.insurance.insuranceMatch) {
+        items.push("Insurance accepted")
+    }
+
+    if (match.breakdown.specialties.matScore > 0) {
+        items.push("MAT available")
+    }
+
+    if (match.breakdown.specialties.familyProgramScore > 0) {
+        items.push("Family support available")
+    }
+
+    if (items.length === 0) {
+        items.push("Aligned with key care needs")
+    }
+
+    return items.slice(0, 4)
+}
+
+function buildNextStep(match: FacilityMatchResult) {
+    if (match.breakdown.insurance.insuranceMatch) {
+        return "A good next step is to confirm admissions timing, insurance details, and any program-specific requirements."
+    }
+
+    return "A good next step is to confirm admissions timing, payment options, and whether the program fits your immediate care needs."
 }
 
 function normalizeReason(
@@ -63,7 +119,7 @@ function buildSubtitle(match: FacilityMatchResult) {
         match.breakdown.programs.detoxScore > 0 &&
         match.breakdown.programs.levelMatches >= 2
     ) {
-        return "Structured detox and continued care."
+        return "Structured care with detox and continued support."
     }
 
     if (match.breakdown.programs.detoxScore > 0) {
@@ -71,37 +127,18 @@ function buildSubtitle(match: FacilityMatchResult) {
     }
 
     if (match.breakdown.programs.levelMatches >= 2) {
-        return "Strong alignment with your requested care."
+        return "A strong fit for the level of care you may need."
     }
 
     if (match.breakdown.programs.levelMatches === 1) {
-        return "Aligned with a key part of your care needs."
+        return "Aligned with an important part of your care needs."
     }
 
     return "A credible treatment option."
 }
 
 function buildReassuranceLine(match: FacilityMatchResult) {
-    if (
-        match.breakdown.insurance.insuranceMatch &&
-        match.breakdown.specialties.matScore > 0
-    ) {
-        return "Insurance accepted. Medication-supported care available."
-    }
-
-    if (match.breakdown.insurance.insuranceMatch) {
-        return "Insurance accepted."
-    }
-
-    if (match.breakdown.specialties.matScore > 0) {
-        return "Medication-supported care available."
-    }
-
-    if (match.breakdown.specialties.familyProgramScore > 0) {
-        return "Family support available."
-    }
-
-    return "Established treatment setting."
+    return ""
 }
 
 function buildExplanationSummary(match: FacilityMatchResult) {
@@ -112,25 +149,25 @@ function buildExplanationSummary(match: FacilityMatchResult) {
     }
 
     if (match.breakdown.programs.levelMatches >= 2) {
-        parts.push("Strong alignment with your requested level of care.")
+        parts.push("The level of care aligns closely with what you may need.")
     } else if (match.breakdown.programs.levelMatches === 1) {
-        parts.push("Aligned with an important part of your care needs.")
+        parts.push("An important part of your care needs appears to align here.")
     }
 
     if (match.breakdown.insurance.insuranceMatch) {
-        parts.push("Accepts your insurance.")
+        parts.push("This facility appears to work with your insurance.")
     }
 
     if (match.breakdown.specialties.matScore > 0) {
-        parts.push("Medication-assisted treatment is available.")
+        parts.push("Medication-supported treatment is available.")
     }
 
     if (match.breakdown.specialties.familyProgramScore > 0) {
-        parts.push("Family support programming is available.")
+        parts.push("Family support is available.")
     }
 
     if (parts.length === 0) {
-        return "Aligned with several of your care needs."
+        return "This facility appears to align with several of your care needs."
     }
 
     return parts.join(" ")
@@ -138,23 +175,38 @@ function buildExplanationSummary(match: FacilityMatchResult) {
 
 export function buildMatchViewModel(match: FacilityMatchResult): MatchViewModel {
     const reasons = match.explanation.reasons.map(normalizeReason)
+    const cautions = match.explanation.cautions
 
     return {
         id: match.facilityId,
         title: match.facilityName,
         score: match.totalScore,
         reasons,
-        cautions: match.explanation.cautions,
+        cautions,
         presentation: {
+
             title: match.facilityName,
             subtitle: buildSubtitle(match),
             location: match.city,
             logoUrl: match.logoUrl,
+
+            recommendationSourceLabel: "Our recommendation",
+
             heroImageUrl: undefined,
-            primaryCtaLabel: "Explore this option",
-            explanationCtaLabel: "Why this may be a strong fit for you",
+            primaryCtaLabel: "Choose this facility",
+            explanationCtaLabel: "See why we recommended this",
             reassuranceLine: buildReassuranceLine(match),
             eyebrow: buildEyebrow(match),
+            scoreLabel: buildScoreLabel(match),
+        },
+        brochure: {
+            atAGlance: buildAtAGlance(match),
+            strengths: reasons.slice(0, 4),
+            watchouts: cautions,
+            nextStep: buildNextStep(match),
+            supportingInfo: reasons.filter(
+                (reason) => reason.snippet || reason.sourceLabel || reason.sourceUrl,
+            ),
         },
         explanation: {
             summary: buildExplanationSummary(match),

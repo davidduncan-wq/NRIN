@@ -22,3 +22,5 @@ NRIN Matching Doctrine
 7. The system's purpose is not to eliminate referrals,
    but to ensure that patient placement is guided by
    best-fit treatment rather than opaque trading networks.
+
+   IMPORTANT*** NRIN may use crawler- or asset-derived facility brand colors as restrained accents in the recommendation and brochure surfaces, while preserving NRIN’s own typography, layout, readability, and design system control.

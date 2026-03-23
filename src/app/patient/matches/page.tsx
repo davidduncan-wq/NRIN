@@ -2,8 +2,11 @@ import MatchCardStack from "@/components/patient/MatchCardStack"
 import { fetchFacilityMatchingInputs } from "@/lib/matching/fetchFacilityMatches"
 import { buildMatchViewModel } from "@/lib/matching/buildMatchViewModel"
 import { matchPatientToFacilities } from "@/lib/matching/matchPatientToFacilities"
+
 import type {
     FacilityMatchingInput,
+    InsuranceCarrier,
+    LevelOfCare,
     PatientMatchingInput,
 } from "@/lib/matching/types"
 
@@ -56,32 +59,102 @@ const demoFacilities: FacilityMatchingInput[] = [
     },
 ]
 
-export default async function PatientMatchesPage() {
+function parseBoolean(value: string | string[] | undefined, fallback: boolean) {
+    if (typeof value !== "string") return fallback
+    return value === "1"
+}
+
+function parseLevels(value: string | string[] | undefined, fallback: LevelOfCare[]) {
+    if (typeof value !== "string" || value.trim() === "") return fallback
+    return value
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean) as LevelOfCare[]
+}
+
+function parseInsuranceCarrier(
+    value: string | string[] | undefined,
+): InsuranceCarrier | undefined {
+    return typeof value === "string" ? (value as InsuranceCarrier) : undefined
+}
+
+function buildPatientFromSearchParams(
+    searchParams?: Record<string, string | string[] | undefined>,
+): PatientMatchingInput {
+    if (!searchParams) return demoPatient
+
+    const desiredLevelsOfCare = parseLevels(
+        searchParams.desiredLevelsOfCare,
+        demoPatient.desiredLevelsOfCare,
+    )
+
+    return {
+        needsDetox: parseBoolean(
+            searchParams.needsDetox,
+            demoPatient.needsDetox ?? true,
+        ),
+        desiredLevelsOfCare,
+        prefersDualDiagnosis: parseBoolean(
+            searchParams.prefersDualDiagnosis,
+            demoPatient.prefersDualDiagnosis ?? true,
+        ),
+        requiresMAT: parseBoolean(
+            searchParams.requiresMAT,
+            demoPatient.requiresMAT ?? true,
+        ),
+        insuranceCarrier:
+            parseInsuranceCarrier(searchParams.insuranceCarrier) ??
+            demoPatient.insuranceCarrier,
+        wantsProfessionalProgram: parseBoolean(
+            searchParams.wantsProfessionalProgram,
+            demoPatient.wantsProfessionalProgram ?? false,
+        ),
+        wantsFamilyProgram: parseBoolean(
+            searchParams.wantsFamilyProgram,
+            demoPatient.wantsFamilyProgram ?? true,
+        ),
+
+        state:
+            typeof searchParams.state === "string" && searchParams.state.trim() !== ""
+                ? searchParams.state
+                : demoPatient.state,
+    }
+}
+
+export default async function PatientMatchesPage({
+    searchParams,
+}: {
+    searchParams?: Record<string, string | string[] | undefined>
+}) {
+    const patient = buildPatientFromSearchParams(searchParams)
+
     const fetchedFacilities = await fetchFacilityMatchingInputs()
     const facilities =
         fetchedFacilities.length > 0 ? fetchedFacilities : demoFacilities
 
-    const result = matchPatientToFacilities(demoPatient, facilities)
+    const result = matchPatientToFacilities(patient, facilities)
     const viewModels = result.matches.map(buildMatchViewModel)
+    const recommendationSourceLabel =
+        viewModels[0]?.presentation.recommendationSourceLabel ?? "Our recommendation"
 
     return (
         <main className="min-h-screen bg-white px-6 py-10 sm:py-14">
             <div className="mx-auto max-w-6xl">
-                <div className="max-w-3xl">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-400">
-                        Recommended options
-                    </p>
+                <div className="pt-14 sm:pt-20">
+                    <div className="max-w-[720px]">
+                        <p className="text-sm text-stone-500">
+                            Based on what you shared
+                        </p>
 
-                    <h1 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-stone-950 sm:text-5xl">
-                        Places that may fit your care needs
-                    </h1>
-
-                    <p className="mt-4 max-w-xl text-base leading-7 text-stone-500 sm:text-lg">
-                        Treatment options matched to your care needs.
-                    </p>
+                        <h1 className="mt-1 text-lg font-semibold text-stone-950 sm:text-xl">
+                            Our recommendation
+                        </h1>
+                    </div>
                 </div>
 
-                <MatchCardStack matches={viewModels} />
+                <div className="mt-12 sm:mt-16">
+                    <MatchCardStack matches={viewModels} />
+                </div>
             </div>
         </main>
     )

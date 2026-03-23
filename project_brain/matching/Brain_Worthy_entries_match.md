@@ -40,3 +40,20 @@ Choosing a facility is an explicit, confirmable action because it triggers real-
 NRIN uses a view-model adapter between canonical matching logic and patient-facing presentation so interaction paradigms can be swapped and A/B tested without changing matcher behavior.
 5. Evidence-forward future state
 Match reasons should eventually be evidence-addressable, linking patient-specific needs and preferences to source-backed facility content, snippets, and URLs.
+🧠 Refined version of your idea (save this)
+
+We should eventually add:
+
+“Decision Assist Layer”
+
+Triggered when:
+
+no selection after X time
+multiple back-and-forth interactions
+repeated browsing
+
+It offers:
+
+refine preferences
+ask a question
+surface a clearer recommendation

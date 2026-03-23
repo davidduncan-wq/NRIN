@@ -14,9 +14,10 @@ Your job is to read the files below in this exact order before doing any work:
 2. `project_brain/NRIN_ENGINEERING_HANDOFF.md`
 3. `project_brain/NRIN_REPO_STRATEGY.md`
 4. `project_brain/NRIN_DESIGN_SYSTEM.md`
-5. `project_brain/NRIN_SURGICAL_EDIT_RULES.md`
-6. `project_brain/NRIN_CURRENT_PRIORITIES.md`
-7. `project_brain/NRIN_PRODUCT_VISION.md`
+5. `project_brain/matching/NRIN_LIFE_FIT_AND_PREFERENCE_DOCTRINE.md`
+6. `project_brain/NRIN_SURGICAL_EDIT_RULES.md`
+7. `project_brain/NRIN_CURRENT_PRIORITIES.md`
+8. `project_brain/NRIN_PRODUCT_VISION.md`
 
 ## Non-Negotiable Rules
 
@@ -46,5 +47,21 @@ Always prefer:
 - exact commands
 - exact edits
 - concise engineering-grade guidance
+
+## Critical Product Doctrine Reminder
+
+NRIN matching is not only about clinical correctness.
+
+It must incorporate:
+
+- clinical/logistical need
+- financial accessibility
+- life-fit and patient preference
+
+The life-fit layer is defined in:
+
+`project_brain/matching/NRIN_LIFE_FIT_AND_PREFERENCE_DOCTRINE.md`
+
+Do not design intake, matching, or recommendation flows without respecting this layer.
 
 This file is an orientation document, not a product spec.

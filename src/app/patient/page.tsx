@@ -2,18 +2,19 @@
 "use client";
 
 import { Step5Review } from "./components/Step5Review";
+import { Step5LifeFit } from "./components/Step5LifeFit";
 import { useState } from "react";
 import { Step3Housing } from "./components/Step3Housing";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { PhoneInput } from "@/components/ui/PhoneInput";
-import { DateInput } from "@/components/ui/DateInput";
 import FieldCheck from "@/components/ui/FieldCheck";
-import ChoiceButton from "@/components/ui/ChoiceButton";
 import { supabase } from "@/lib/supabaseClient";
 import { Step1Demographics } from "./components/Step1Demographics";
 import { Step2Contact } from "./components/Step2Contact";
 import { Step4Substances } from "./components/Step4Substances";
+import { useRouter } from "next/navigation";
+
+import type { InsuranceCarrier, LevelOfCare, PatientMatchingInput } from "@/lib/matching/types";
+
 
 // Smooth wrapper (keep transitions, but never hide content)
 function StepTransition({ children }: { children: React.ReactNode }) {
@@ -71,7 +72,7 @@ function dobToISO(dob: string): string | null {
     return `${yyyy}-${mm}-${dd}`;
 }
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6;
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 type Recommendation = {
     withdrawalRisk: string;
@@ -100,6 +101,96 @@ function computeAgeYears(isoDate: string | undefined | null): number | null {
     if (age < 0 || age > 120) return null;
 
     return age;
+}
+function deriveDesiredLevelsOfCare(result: Recommendation): LevelOfCare[] {
+    const text = result.recommendedLevelOfCare.toLowerCase();
+    const levels: LevelOfCare[] = [];
+
+    if (text.includes("detox")) levels.push("detox");
+    if (text.includes("residential")) levels.push("residential");
+    if (text.includes("php")) levels.push("php");
+    if (text.includes("iop")) levels.push("iop");
+    if (text.includes("outpatient")) levels.push("outpatient");
+    if (text.includes("aftercare")) levels.push("aftercare");
+
+    if (levels.length === 0) {
+        levels.push("residential");
+    }
+
+    return levels;
+}
+
+function deriveInsuranceCarrierFromNotes(notes: string): InsuranceCarrier | undefined {
+    const lower = notes.toLowerCase();
+
+    if (lower.includes("blue cross") || lower.includes("bcbs")) return "blue_cross_blue_shield";
+    if (lower.includes("aetna")) return "aetna";
+    if (lower.includes("cigna")) return "cigna";
+    if (lower.includes("united")) return "united_healthcare";
+    if (lower.includes("humana")) return "humana";
+    if (lower.includes("anthem")) return "anthem";
+    if (lower.includes("tricare")) return "tricare";
+    if (lower.includes("medicare")) return "medicare";
+    if (lower.includes("medicaid")) return "medicaid";
+    if (lower.includes("self pay") || lower.includes("self-pay")) return "self_pay";
+
+    return undefined;
+}
+
+function buildPatientMatchingInput(
+    form: FormState,
+    result: Recommendation,
+): PatientMatchingInput {
+    const notes = [
+        form.workDailyLifeNotes,
+        form.familyRelationshipNotes,
+        form.locationEnvironmentNotes,
+        form.treatmentGoalsNotes,
+        form.additionalContextNotes,
+    ]
+        .join(" ")
+        .toLowerCase();
+
+    const substances = form.substances.map((value) => value.toLowerCase());
+
+    const requiresMAT =
+        substances.some((value) =>
+            ["fentanyl", "opioids", "opioid", "heroin"].includes(value),
+        ) || notes.includes("mat");
+
+    const wantsFamilyProgram =
+        notes.includes("family") ||
+        notes.includes("children") ||
+        notes.includes("kids") ||
+        notes.includes("wife") ||
+        notes.includes("husband") ||
+        notes.includes("divorce");
+
+    const wantsProfessionalProgram =
+        notes.includes("career") ||
+        notes.includes("job") ||
+        notes.includes("work") ||
+        notes.includes("pilot") ||
+        notes.includes("doctor") ||
+        notes.includes("nurse") ||
+        notes.includes("attorney") ||
+        notes.includes("executive") ||
+        notes.includes("monitoring");
+
+    const prefersDualDiagnosis =
+        result.coOccurring.toLowerCase() !== "none" &&
+        result.coOccurring.toLowerCase() !== "low";
+
+    return {
+        needsDetox: deriveDesiredLevelsOfCare(result).includes("detox"),
+        desiredLevelsOfCare: deriveDesiredLevelsOfCare(result),
+        prefersDualDiagnosis,
+        requiresMAT,
+        insuranceCarrier: deriveInsuranceCarrierFromNotes(notes),
+        wantsProfessionalProgram,
+        wantsFamilyProgram,
+        state: form.state || undefined,
+    };
 }
 
 export type FormState = {
@@ -147,6 +238,13 @@ export type FormState = {
     mhMeds: string;
     mhHospitalization: string;
     supportivePerson: string;
+
+    lifeFitCaptureMode: "" | "full" | "skip";
+    workDailyLifeNotes: string;
+    familyRelationshipNotes: string;
+    locationEnvironmentNotes: string;
+    treatmentGoalsNotes: string;
+    additionalContextNotes: string;
 
     initials: string;
 };
@@ -197,6 +295,13 @@ const initialFormState: FormState = {
     mhHospitalization: "",
     supportivePerson: "",
 
+    lifeFitCaptureMode: "",
+    workDailyLifeNotes: "",
+    familyRelationshipNotes: "",
+    locationEnvironmentNotes: "",
+    treatmentGoalsNotes: "",
+    additionalContextNotes: "",
+
     initials: "",
 };
 
@@ -205,6 +310,9 @@ export default function PatientIntakePage() {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<Recommendation | null>(null);
     const [form, setForm] = useState<FormState>(initialFormState);
+
+    const router = useRouter();
+
 
     const ageYears = computeAgeYears(form.dobISO);
 
@@ -223,6 +331,17 @@ export default function PatientIntakePage() {
 
     const isSubstanceStepComplete =
         form.substances.length > 0 && !!form.lastUse && !!form.frequency;
+
+    const hasLifeFitInput = [
+        form.workDailyLifeNotes,
+        form.familyRelationshipNotes,
+        form.locationEnvironmentNotes,
+        form.treatmentGoalsNotes,
+        form.additionalContextNotes,
+    ].some((value) => value.trim().length > 0);
+
+    const isLifeFitStepComplete =
+        form.lifeFitCaptureMode === "skip" || hasLifeFitInput || step > 5;
 
     function toggleSubstance(value: string) {
         setForm((prev) => {
@@ -275,7 +394,7 @@ export default function PatientIntakePage() {
 
             const data = (await res.json()) as Recommendation;
             setResult(data);
-            setStep(6);
+            setStep(7);
         } catch (err) {
             console.error(err);
             alert("Something went wrong.");
@@ -300,9 +419,7 @@ export default function PatientIntakePage() {
         try {
             const isoDob = dobToISO(form.dob) ?? null;
 
-            // 1) Create patient
-            const patientPayload: any = {
-
+            const patientPayload = {
                 first_name: form.firstName || null,
                 last_name: form.lastName || null,
                 date_of_birth: isoDob,
@@ -324,7 +441,7 @@ export default function PatientIntakePage() {
                 withdrawal_risk: null,
                 last_use_date: null,
             };
-            console.log("patientPayload", patientPayload);
+
             const {
                 data: patientData,
                 error: patientError,
@@ -343,7 +460,6 @@ export default function PatientIntakePage() {
 
             const patientId: string = patientData.id;
 
-            // 2) Create case
             const { data: caseData, error: caseError } = await supabase
                 .from("cases")
                 .insert([
@@ -364,50 +480,27 @@ export default function PatientIntakePage() {
                 return;
             }
 
-            const caseId: string = caseData.id;
+            const patientInput = buildPatientMatchingInput(form, result);
+            const params = new URLSearchParams();
 
-            // 3) Pick a default facility (first facility_sites row)
-            let facilitySiteId: string | null = null;
+            params.set("needsDetox", patientInput.needsDetox ? "1" : "0");
+            params.set("desiredLevelsOfCare", patientInput.desiredLevelsOfCare.join(","));
+            params.set("prefersDualDiagnosis", patientInput.prefersDualDiagnosis ? "1" : "0");
+            params.set("requiresMAT", patientInput.requiresMAT ? "1" : "0");
+            params.set("wantsProfessionalProgram", patientInput.wantsProfessionalProgram ? "1" : "0");
+            params.set("wantsFamilyProgram", patientInput.wantsFamilyProgram ? "1" : "0");
 
-            const {
-                data: facilityData,
-                error: facilityError,
-            } = await supabase
-                .from("facility_sites")
-                .select("id")
-                .order("created_at", { ascending: true })
-                .limit(1);
-
-            if (!facilityError && facilityData && facilityData.length > 0) {
-                facilitySiteId = (facilityData[0] as { id: string }).id;
+            if (patientInput.insuranceCarrier) {
+                params.set("insuranceCarrier", patientInput.insuranceCarrier);
             }
 
-            // 4) Create referral
-            const { error: referralError } = await supabase.from("referrals").insert([
-                {
-                    patient_id: patientId,
-                    case_id: caseId,
-                    status: "new",
-                    facility_site_id: facilitySiteId,
-                },
-            ]);
-
-            if (referralError) {
-                console.error("Error inserting referral:", referralError);
-
-                alert(
-                    `We saved your information, but couldn't send the referral.\n\n` +
-                    `Supabase says: ${"message" in referralError
-                        ? referralError.message
-                        : JSON.stringify(referralError)
-                    }`,
-                );
-                return;
+            if (patientInput.state) {
+                params.set("state", patientInput.state);
             }
 
-            alert("Your intake has been submitted and a referral has been sent.");
+            router.push(`/patient/matches?${params.toString()}`);
         } catch (err) {
-            console.error("Unexpected error submitting intake + referral:", err);
+            console.error("Unexpected error submitting intake:", err);
             alert("Something went wrong while submitting. Please try again.");
         } finally {
             setLoading(false);
@@ -419,12 +512,13 @@ export default function PatientIntakePage() {
         { id: 2, label: "Identity & address", complete: isIdentityStepComplete },
         { id: 3, label: "Housing", complete: isHousingStepComplete },
         { id: 4, label: "Substances & treatment", complete: isSubstanceStepComplete },
+        { id: 5, label: "Life situation & preferences", complete: isLifeFitStepComplete },
         {
-            id: 5,
+            id: 6,
             label: "Review & confirm",
-            complete: step === 6 || !!form.initials,
+            complete: step === 7 || !!form.initials,
         },
-        { id: 6, label: "Recommendation", complete: !!result },
+        { id: 7, label: "Summary & submit", complete: !!result },
     ];
 
     const activeStep = stepsMeta.find((s) => s.id === step);
@@ -455,7 +549,7 @@ export default function PatientIntakePage() {
                                     >
                                         <div className="flex flex-col">
                                             <span className="text-[11px] font-medium uppercase tracking-wide opacity-70">
-                                                Step {s.id} of 6
+                                                Step {s.id} of 7
                                             </span>
                                             <span className="text-sm font-medium">{s.label}</span>
                                         </div>
@@ -475,7 +569,7 @@ export default function PatientIntakePage() {
                             <header className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                        Step {activeStep.id} of 6
+                                        Step {activeStep.id} of 7
                                     </p>
                                     <h1 className="mt-1 text-lg font-semibold text-gray-900 sm:text-xl">
                                         {activeStep.label}
@@ -490,9 +584,11 @@ export default function PatientIntakePage() {
                                         {step === 4 &&
                                             "This helps us understand withdrawal and relapse risk."}
                                         {step === 5 &&
-                                            "Please double-check that everything looks right before you continue."}
+                                            "This optional step helps us find a place that fits your life, not just your treatment."}
                                         {step === 6 &&
-                                            "Based on what you shared, here’s an initial snapshot and recommendation."}
+                                            "Please double-check that everything looks right before you continue."}
+                                        {step === 7 &&
+                                            "Please review your summary, confirm accuracy, and submit intake to see your recommendation."}
                                     </p>
                                 </div>
 
@@ -560,176 +656,129 @@ export default function PatientIntakePage() {
                             />
                         )}
 
-                        {/* STEP 5 – REVIEW & CONFIRM */}
+                        {/* STEP 5 – LIFE SITUATION & PREFERENCES */}
                         {step === 5 && (
-                            <Step5Review
+                            <Step5LifeFit
                                 form={form}
                                 setForm={setForm}
                                 loading={loading}
                                 onBack={() => setStep(4)}
+                                onNext={() => setStep(6)}
+                            />
+                        )}
+
+                        {/* STEP 6 – REVIEW & CONFIRM */}
+                        {step === 6 && (
+                            <Step5Review
+                                form={form}
+                                setForm={setForm}
+                                loading={loading}
+                                onBack={() => setStep(5)}
                                 onGetRecommendation={handleSubmit}
                             />
                         )}
 
-                        {/* STEP 6 – SUMMARY & RECOMMENDATION */}
-                        {step === 6 && result && (
+                        {/* STEP 7 – SUMMARY & SUBMIT */}
+                        {step === 7 && result && (
                             <StepTransition>
                                 <section className="space-y-6">
-                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                        {/* Left card: Your information */}
-                                        <div className="rounded-2xl border border-gray-100 bg-white p-4 md:p-5">
-                                            <div className="space-y-4">
-                                                <div className="space-y-1">
-                                                    <h2 className="text-sm font-semibold text-gray-900">
-                                                        Your information
-                                                    </h2>
-                                                    <p className="text-xs text-gray-500">
-                                                        A quick summary of what you shared with us.
-                                                    </p>
+                                    <div className="rounded-2xl border border-gray-100 bg-white p-4 md:p-5">
+                                        <div className="space-y-4">
+                                            <div className="space-y-1">
+                                                <h2 className="text-sm font-semibold text-gray-900">
+                                                    Your information
+                                                </h2>
+                                                <p className="text-xs text-gray-500">
+                                                    A quick summary of what you shared with us.
+                                                </p>
+                                            </div>
+
+                                            <dl className="space-y-2 text-sm text-gray-700">
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <dt className="text-gray-500">Name</dt>
+                                                    <dd className="text-right text-gray-900">
+                                                        {[form.firstName, form.lastName].filter(Boolean).join(" ") ||
+                                                            "Not provided"}
+                                                    </dd>
                                                 </div>
 
-                                                <dl className="space-y-2 text-sm text-gray-700">
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">Name</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {[form.firstName, form.lastName].filter(Boolean).join(" ") ||
-                                                                "Not provided"}
-                                                        </dd>
-                                                    </div>
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <dt className="text-gray-500">Date of birth</dt>
+                                                    <dd className="text-right text-gray-900">
+                                                        {form.dob || "Not provided"}
+                                                    </dd>
+                                                </div>
 
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">Date of birth</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {form.dob || "Not provided"}
-                                                        </dd>
-                                                    </div>
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <dt className="text-gray-500">
+                                                        Substances used (last 30 days)
+                                                    </dt>
+                                                    <dd className="max-w-[60%] text-right text-gray-900">
+                                                        {form.substances.length > 0
+                                                            ? form.substances.join(", ")
+                                                            : "Not provided"}
+                                                    </dd>
+                                                </div>
 
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">
-                                                            Substances used (last 30 days)
-                                                        </dt>
-                                                        <dd className="max-w-[60%] text-right text-gray-900">
-                                                            {form.substances.length > 0
-                                                                ? form.substances.join(", ")
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <dt className="text-gray-500">Last use</dt>
+                                                    <dd className="text-right text-gray-900">
+                                                        {form.lastUse || "Not provided"}
+                                                    </dd>
+                                                </div>
+
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <dt className="text-gray-500">Use frequency</dt>
+                                                    <dd className="text-right text-gray-900">
+                                                        {form.frequency || "Not provided"}
+                                                    </dd>
+                                                </div>
+
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <dt className="text-gray-500">Prior treatment</dt>
+                                                    <dd className="text-right text-gray-900">
+                                                        {form.priorTreatment === "yes"
+                                                            ? "Yes"
+                                                            : form.priorTreatment === "no"
+                                                                ? "No"
                                                                 : "Not provided"}
-                                                        </dd>
-                                                    </div>
-
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">Last use</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {form.lastUse || "Not provided"}
-                                                        </dd>
-                                                    </div>
-
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">Use frequency</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {form.frequency || "Not provided"}
-                                                        </dd>
-                                                    </div>
-
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">Prior treatment</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {form.priorTreatment === "yes"
-                                                                ? "Yes"
-                                                                : form.priorTreatment === "no"
-                                                                    ? "No"
-                                                                    : "Not provided"}
-                                                        </dd>
-                                                    </div>
-
-                                                    {form.priorTreatment === "yes" && (
-                                                        <>
-                                                            <div className="flex items-start justify-between gap-4">
-                                                                <dt className="text-gray-500">
-                                                                    Last treatment duration
-                                                                </dt>
-                                                                <dd className="text-right text-gray-900">
-                                                                    {form.treatmentLastDuration || "Not provided"}
-                                                                </dd>
-                                                            </div>
-
-                                                            <div className="flex items-start justify-between gap-4">
-                                                                <dt className="text-gray-500">
-                                                                    Last treatment year
-                                                                </dt>
-                                                                <dd className="text-right text-gray-900">
-                                                                    {form.treatmentLastYear || "Not provided"}
-                                                                </dd>
-                                                            </div>
-
-                                                            <div className="flex items-start justify-between gap-4">
-                                                                <dt className="text-gray-500">
-                                                                    Treatment facility
-                                                                </dt>
-                                                                <dd className="max-w-[60%] text-right text-gray-900">
-                                                                    {form.treatmentFacility || "Not provided"}
-                                                                </dd>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </dl>
-                                            </div>
-                                        </div>
-
-                                        {/* Right card: Recommendation */}
-                                        <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 md:p-5">
-                                            <div className="space-y-4">
-                                                <div className="space-y-1">
-                                                    <h2 className="text-sm font-semibold text-gray-900">
-                                                        Recommendation
-                                                    </h2>
-                                                    <p className="text-xs text-gray-500">
-                                                        Based on what you shared, here is your initial clinical
-                                                        snapshot.
-                                                    </p>
+                                                    </dd>
                                                 </div>
 
-                                                <div className="rounded-xl border border-blue-200 bg-white p-4">
-                                                    <p className="text-xs font-medium uppercase tracking-wide text-blue-700">
-                                                        Recommended level of care
-                                                    </p>
-                                                    <p className="mt-2 text-lg font-semibold text-gray-900">
-                                                        {result.recommendedLevelOfCare}
-                                                    </p>
-                                                </div>
+                                                {form.priorTreatment === "yes" && (
+                                                    <>
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <dt className="text-gray-500">
+                                                                Last treatment duration
+                                                            </dt>
+                                                            <dd className="text-right text-gray-900">
+                                                                {form.treatmentLastDuration || "Not provided"}
+                                                            </dd>
+                                                        </div>
 
-                                                <dl className="space-y-2 text-sm text-gray-700">
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">Withdrawal risk</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {result.withdrawalRisk}
-                                                        </dd>
-                                                    </div>
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <dt className="text-gray-500">
+                                                                Last treatment year
+                                                            </dt>
+                                                            <dd className="text-right text-gray-900">
+                                                                {form.treatmentLastYear || "Not provided"}
+                                                            </dd>
+                                                        </div>
 
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">Relapse risk</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {result.relapseRisk}
-                                                        </dd>
-                                                    </div>
-
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">Co-occurring needs</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {result.coOccurring}
-                                                        </dd>
-                                                    </div>
-
-                                                    <div className="flex items-start justify-between gap-4">
-                                                        <dt className="text-gray-500">Support level</dt>
-                                                        <dd className="text-right text-gray-900">
-                                                            {result.supportLevel}
-                                                        </dd>
-                                                    </div>
-                                                </dl>
-                                            </div>
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <dt className="text-gray-500">
+                                                                Treatment facility
+                                                            </dt>
+                                                            <dd className="max-w-[60%] text-right text-gray-900">
+                                                                {form.treatmentFacility || "Not provided"}
+                                                            </dd>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </dl>
                                         </div>
                                     </div>
 
-                                    {/* Confirmation */}
                                     <section className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 md:p-5">
                                         <div className="space-y-3">
                                             <div className="space-y-1">
@@ -756,11 +805,10 @@ export default function PatientIntakePage() {
                                         </div>
                                     </section>
 
-                                    {/* Step 6 — Actions */}
                                     <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                                         <button
                                             type="button"
-                                            onClick={() => setStep(5)}
+                                            onClick={() => setStep(6)}
                                             className="inline-flex h-10 items-center rounded-xl bg-gray-100 px-4 text-sm font-medium text-gray-800 transition hover:bg-gray-200"
                                         >
                                             Back to review
@@ -773,7 +821,7 @@ export default function PatientIntakePage() {
                                                 disabled={loading}
                                                 className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
                                             >
-                                                {loading ? "Submitting..." : "Submit intake"}
+                                                {loading ? "Submitting..." : "Submit intake and see recommendation"}
                                             </button>
                                         </div>
 
@@ -784,7 +832,7 @@ export default function PatientIntakePage() {
                                                 disabled={loading}
                                                 className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-black px-6 text-base font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
                                             >
-                                                {loading ? "Submitting..." : "Submit intake"}
+                                                {loading ? "Submitting..." : "Submit intake and see recommendation"}
                                             </button>
                                         </StickyActionBar>
                                     </div>
