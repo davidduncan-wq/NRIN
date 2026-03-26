@@ -14,6 +14,16 @@ Update this file whenever:
 
 ## Core Product Surfaces
 
+### Patient Intake
+- `src/app/patient/page.tsx`
+  - Canonical patient intake orchestrator
+  - Owns `FormState`, step flow, recommendation handoff, and patient-side match launch
+
+- `src/app/patient/components/Step5LifeFit.tsx`
+  - Soft-signal / optional life-fit and funding-preference capture
+  - Feeds matcher-facing life-fit and payment-path signals
+  - Must remain intake UI, not matcher logic
+
 ### Patient Matching
 - `src/app/patient/matches/page.tsx`
   - Patient match experience entry page
@@ -21,50 +31,72 @@ Update this file whenever:
 
 - `src/components/patient/MatchCardStack.tsx`
   - Primary patient-facing match presentation surface
-  - Handles navigation/swipe behavior and opening explanation/detail surface
+  - Handles single-card navigation, card-level pills, and opening detail surface
 
 - `src/components/patient/MatchDetailSheet.tsx`
   - Secondary detail/explanation surface
-  - Shows deeper rationale and evidence links
+  - Shows deeper rationale, evidence-backed strengths, cautions, and next-step guidance
 
 ---
 
 ## Matching Engine
 
+### Input boundary
+- `src/lib/matching/buildPatientProfile.ts`
+  - Canonical intake-to-matcher translator
+  - Converts patient form state + recommendation result into `PatientMatchingInput`
+  - Builds life-fit signals, funding/insurance state, specialty desires, and desired levels of care
+
+### Matcher orchestration
 - `src/lib/matching/matchPatientToFacilities.ts`
   - Canonical matcher orchestration
-  - Applies filters, scoring, explanation building, and sorting
+  - Applies filters, scoring, explanation building, sorting, and top-result diversification
 
 - `src/lib/matching/hardFilters.ts`
   - Hard inclusion/exclusion logic
   - Should remain logic-only
 
+### Scoring
 - `src/lib/matching/scorePrograms.ts`
-  - Scores level-of-care and related program fit
+  - Scores level-of-care fit
+  - Primary-vs-secondary level weighting
+  - Must remain clinical/program logic only
 
 - `src/lib/matching/scoreInsurance.ts`
-  - Scores insurance compatibility
+  - Scores financial compatibility
+  - Supports progressive certainty:
+    - exact carrier match
+    - likely insurance compatibility
+    - self-pay / indigent fallback
 
 - `src/lib/matching/scoreSpecialties.ts`
-  - Scores specialty/support fit (MAT, family, professional, etc.)
+  - Scores specialty/support fit
+  - Current structured signals:
+    - MAT
+    - family program
+    - professional program
 
 - `src/lib/matching/scoreConfidence.ts`
-  - Scores confidence/quality signal from facility intelligence
+  - Scores confidence / quality signal from facility intelligence
 
+### Explanation / output boundary
 - `src/lib/matching/buildMatchExplanation.ts`
-  - Builds human-facing explanation reasons and cautions
-  - Bridges matcher outputs to evidence-backed reasoning
+  - Builds human-facing reasons and cautions
+  - Evidence-aware explanation layer
+  - Should describe certainty honestly
 
 - `src/lib/matching/buildMatchViewModel.ts`
   - Canonical presentation boundary
   - Shapes matcher output into UI-ready presentation and explanation model
+  - This is the output bridge between engine and UI
 
 - `src/lib/matching/types.ts`
   - Canonical shared types for matching pipeline
   - Keep shape definitions here, not runtime values
 
+### Data adapter
 - `src/lib/matching/fetchFacilityMatches.ts`
-  - Supabase adapter from facility intelligence + facility identity into FacilityMatchingInput
+  - Supabase adapter from facility intelligence + facility identity into `FacilityMatchingInput`
 
 ---
 
@@ -112,10 +144,27 @@ Update this file whenever:
   - Repo structure snapshot
   - Read before changing files if path is uncertain
 
+- `project_brain/NRIN_COMMAND_CENTER.md`
+  - Active execution doctrine / current state file
+  - Read first in new coding chats
+
+---
+
+## Shared / Planned Presentation Bridge
+
+- `src/components/matching/*`
+  - Not active runtime surface right now
+  - Zero-byte stubs / unfinished extraction targets
+  - Likely intended future shared presentation bridge between patient match UI and facility-side/shared matching surfaces
+  - Do not delete casually
+  - Do not treat as canonical runtime until intentionally activated
+
 ---
 
 ## Working Rules
 
+- `buildPatientProfile.ts` is the input boundary
+- `buildMatchViewModel.ts` is the output boundary
 - Matcher logic stays separate from presentation shaping
 - Presentation shaping belongs in `buildMatchViewModel.ts`
 - Components should render, not invent product philosophy
@@ -127,8 +176,8 @@ Update this file whenever:
 ## Notes To Update Later
 
 Add sections for:
-- intake flow
 - facility dashboard
 - referral operations
 - crawler pipeline
 - asset / brochure layer
+- life-fit preference scoring once facility-side structured signals exist
