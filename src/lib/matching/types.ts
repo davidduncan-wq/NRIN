@@ -45,12 +45,18 @@ export type LifeFitProfile = {
   narrativeSummary: string
 }
 
+export type FundingType =
+  | "insurance"
+  | "self_pay"
+  | "indigent"
+
 export type PatientMatchingInput = {
   needsDetox?: boolean
   desiredLevelsOfCare: LevelOfCare[]
   prefersDualDiagnosis?: boolean
   requiresMAT?: boolean
   insuranceCarrier?: InsuranceCarrier
+  fundingType?: FundingType
   state?: string
   wantsProfessionalProgram?: boolean
   wantsFamilyProgram?: boolean

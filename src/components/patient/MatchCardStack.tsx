@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import MatchDetailSheet from "@/components/patient/MatchDetailSheet"
 import { SignalPill } from "@/components/ui/SignalPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
@@ -23,10 +24,12 @@ export default function MatchCardStack({
     showPrimaryAction?: boolean
 }) {
     const [open, setOpen] = useState(false)
-    const [activated, setActivated] = useState(false)
     const [signalsVisible, setSignalsVisible] = useState(false)
+    const [currentIndex, setCurrentIndex] = useState(0)
+    const router = useRouter()
+    const searchParams = useSearchParams()
 
-    const current = matches[0]
+    const current = matches[currentIndex] ?? matches[0]
 
     const initials = useMemo(
         () => (current ? getInitials(current.title) : ""),
@@ -45,37 +48,16 @@ export default function MatchCardStack({
         return () => window.clearTimeout(timer)
     }, [current?.id])
 
+    useEffect(() => {
+        if (currentIndex > matches.length - 1) {
+            setCurrentIndex(0)
+        }
+    }, [currentIndex, matches.length])
+
     if (!current) {
         return (
             <div className="mt-20 text-center text-stone-500">
                 No matches available
-            </div>
-        )
-    }
-
-    if (activated) {
-        return (
-            <div className="mt-12 px-4 sm:mt-16 sm:px-0">
-                <div className="mx-auto max-w-4xl rounded-[24px] border border-stone-200/80 bg-[linear-gradient(180deg,#fffdfa_0%,#fbf8f2_100%)] px-6 py-10 text-center shadow-[0_10px_30px_rgba(41,37,36,0.05)] sm:px-10 sm:py-14">
-                    <div className="mx-auto max-w-2xl">
-                        <h2 className="text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">
-                            Help is on the way.
-                        </h2>
-
-                        <p className="mt-4 text-lg leading-8 text-stone-600">
-                            We’ve contacted the admissions team at{" "}
-                            {current.presentation.title}.
-                        </p>
-
-                        <p className="mt-3 text-base text-stone-500">
-                            Expect a call shortly.
-                        </p>
-
-                        <p className="mt-6 text-sm text-stone-400">
-                            Stay available — you’ve taken an important step.
-                        </p>
-                    </div>
-                </div>
             </div>
         )
     }
@@ -86,17 +68,81 @@ export default function MatchCardStack({
         current.explanation.summary?.trim() ||
         ""
 
+    const visibleReasonPills = current.presentation.reasonPills ?? []
+
+    function handleChooseFacility() {
+        const params = new URLSearchParams()
+
+        const patientId = searchParams.get("patientId")
+        const caseId = searchParams.get("caseId")
+        const insuranceStatus = searchParams.get("insuranceStatus")
+        const insuranceType = searchParams.get("insuranceType")
+        const selfPayIntent = searchParams.get("selfPayIntent")
+
+        if (patientId) params.set("patientId", patientId)
+        if (caseId) params.set("caseId", caseId)
+        if (insuranceStatus) params.set("insuranceStatus", insuranceStatus)
+        if (insuranceType) params.set("insuranceType", insuranceType)
+        if (selfPayIntent) params.set("selfPayIntent", selfPayIntent)
+
+        params.set("facilityId", current.id)
+        params.set("facilityName", current.presentation.title)
+        params.set("matchScore", String(current.score ?? 0))
+
+        if (current.presentation.location) {
+            params.set("facilityLocation", current.presentation.location)
+        }
+
+        router.push(`/patient/prescreen?${params.toString()}`)
+    }
+
+    const canGoPrev = currentIndex > 0
+    const canGoNext = currentIndex < matches.length - 1
+
     return (
         <div
-            className={`px-4 sm:px-0 transition-all duration-700 ease-out ${signalsVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
-                }`}
+            className={`px-4 sm:px-0 transition-all duration-700 ease-out ${
+                signalsVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+            }`}
         >
+            <div className="mb-4 flex items-center justify-between">
+                <div className="text-sm text-stone-500">
+                    Option {currentIndex + 1} of {matches.length}
+                </div>
+
+                {matches.length > 1 && (
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setOpen(false)
+                                setCurrentIndex((prev) => Math.max(0, prev - 1))
+                            }}
+                            disabled={!canGoPrev}
+                            className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            Previous
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setOpen(false)
+                                setCurrentIndex((prev) => Math.min(matches.length - 1, prev + 1))
+                            }}
+                            disabled={!canGoNext}
+                            className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
+            </div>
+
             <SurfaceCard>
                 <div className="px-6 py-7 sm:px-9 sm:py-10 lg:px-12 lg:py-12">
                     <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0 flex-1">
-
-
                             <div className="mt-4">
                                 <h2 className="max-w-3xl text-[2.2rem] font-semibold leading-[1.03] tracking-[-0.035em] text-stone-900 sm:text-[2.8rem] lg:text-[3.25rem]">
                                     {current.presentation.title}
@@ -117,18 +163,16 @@ export default function MatchCardStack({
                                 </div>
                             )}
 
-                            {current.brochure.atAGlance.length > 0 && (
+                            {visibleReasonPills.length > 0 && (
                                 <div className="mt-8">
-                                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-400">
-                                        Why this was selected
-                                    </div>
+                                    
 
                                     <div className="mt-4 flex flex-wrap gap-2.5">
-                                        {current.brochure.atAGlance.map((item, i) => (
+                                        {visibleReasonPills.map((item, i) => (
                                             <SignalPill
-                                                key={i}
+                                                key={`${current.id}-${i}`}
                                                 isVisible={signalsVisible}
-                                                delayMs={i * 800}
+                                                delayMs={i * 120}
                                             >
                                                 {item}
                                             </SignalPill>
@@ -164,7 +208,7 @@ export default function MatchCardStack({
 
                             {showPrimaryAction && (
                                 <button
-                                    onClick={() => setActivated(true)}
+                                    onClick={handleChooseFacility}
                                     className="rounded-[18px] bg-stone-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 sm:px-6"
                                 >
                                     {current.presentation.primaryCtaLabel}
@@ -174,7 +218,6 @@ export default function MatchCardStack({
                     </div>
                 </div>
             </SurfaceCard>
-
 
             <MatchDetailSheet
                 open={open}

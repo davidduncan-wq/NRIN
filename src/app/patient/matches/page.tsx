@@ -1,141 +1,30 @@
 import MatchCardStack from "@/components/patient/MatchCardStack"
 import { fetchFacilityMatchingInputs } from "@/lib/matching/fetchFacilityMatches"
 import { buildMatchViewModel } from "@/lib/matching/buildMatchViewModel"
+import { buildPatientFromSearchParams } from "@/lib/matching/buildPatientProfile"
 import { matchPatientToFacilities } from "@/lib/matching/matchPatientToFacilities"
-
-import type {
-    FacilityMatchingInput,
-    InsuranceCarrier,
-    LevelOfCare,
-    PatientMatchingInput,
-} from "@/lib/matching/types"
-
-const demoPatient: PatientMatchingInput = {
-    needsDetox: true,
-    desiredLevelsOfCare: ["detox", "residential"],
-    prefersDualDiagnosis: true,
-    requiresMAT: true,
-    insuranceCarrier: "blue_cross_blue_shield",
-    wantsProfessionalProgram: false,
-    wantsFamilyProgram: true,
-}
-
-const demoFacilities: FacilityMatchingInput[] = [
-    {
-        facilityId: "hazelden-betty-ford",
-        facilityName: "Hazelden Betty Ford",
-        state: "CA",
-        detectedLevelsOfCare: ["detox", "residential", "php", "iop", "outpatient"],
-        hasDualDiagnosisSignal: true,
-        hasMATSignal: true,
-        hasProfessionalProgramSignal: true,
-        hasFamilyProgramSignal: true,
-        acceptedInsurance: ["blue_cross_blue_shield", "aetna", "cigna", "self_pay"],
-        evidenceConfidence: 0.92,
-    },
-    {
-        facilityId: "caron-treatment",
-        facilityName: "Caron Treatment",
-        state: "PA",
-        detectedLevelsOfCare: ["detox", "residential", "php", "iop", "outpatient"],
-        hasDualDiagnosisSignal: true,
-        hasMATSignal: true,
-        hasProfessionalProgramSignal: true,
-        hasFamilyProgramSignal: false,
-        acceptedInsurance: ["blue_cross_blue_shield", "aetna", "cigna", "self_pay"],
-        evidenceConfidence: 0.88,
-    },
-    {
-        facilityId: "oasis-recovery",
-        facilityName: "Oasis Recovery",
-        state: "CA",
-        detectedLevelsOfCare: ["residential", "php", "iop", "outpatient"],
-        hasDualDiagnosisSignal: true,
-        hasMATSignal: false,
-        hasProfessionalProgramSignal: false,
-        hasFamilyProgramSignal: true,
-        acceptedInsurance: ["aetna", "cigna", "self_pay"],
-        evidenceConfidence: 0.74,
-    },
-]
-
-function parseBoolean(value: string | string[] | undefined, fallback: boolean) {
-    if (typeof value !== "string") return fallback
-    return value === "1"
-}
-
-function parseLevels(value: string | string[] | undefined, fallback: LevelOfCare[]) {
-    if (typeof value !== "string" || value.trim() === "") return fallback
-    return value
-        .split(",")
-        .map((part) => part.trim())
-        .filter(Boolean) as LevelOfCare[]
-}
-
-function parseInsuranceCarrier(
-    value: string | string[] | undefined,
-): InsuranceCarrier | undefined {
-    return typeof value === "string" ? (value as InsuranceCarrier) : undefined
-}
-
-function buildPatientFromSearchParams(
-    searchParams?: Record<string, string | string[] | undefined>,
-): PatientMatchingInput {
-    if (!searchParams) return demoPatient
-
-    const desiredLevelsOfCare = parseLevels(
-        searchParams.desiredLevelsOfCare,
-        demoPatient.desiredLevelsOfCare,
-    )
-
-    return {
-        needsDetox: parseBoolean(
-            searchParams.needsDetox,
-            demoPatient.needsDetox ?? true,
-        ),
-        desiredLevelsOfCare,
-        prefersDualDiagnosis: parseBoolean(
-            searchParams.prefersDualDiagnosis,
-            demoPatient.prefersDualDiagnosis ?? true,
-        ),
-        requiresMAT: parseBoolean(
-            searchParams.requiresMAT,
-            demoPatient.requiresMAT ?? true,
-        ),
-        insuranceCarrier:
-            parseInsuranceCarrier(searchParams.insuranceCarrier) ??
-            demoPatient.insuranceCarrier,
-        wantsProfessionalProgram: parseBoolean(
-            searchParams.wantsProfessionalProgram,
-            demoPatient.wantsProfessionalProgram ?? false,
-        ),
-        wantsFamilyProgram: parseBoolean(
-            searchParams.wantsFamilyProgram,
-            demoPatient.wantsFamilyProgram ?? true,
-        ),
-
-        state:
-            typeof searchParams.state === "string" && searchParams.state.trim() !== ""
-                ? searchParams.state
-                : demoPatient.state,
-    }
-}
 
 export default async function PatientMatchesPage({
     searchParams,
 }: {
-    searchParams?: Record<string, string | string[] | undefined>
+    searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
-    const patient = buildPatientFromSearchParams(searchParams)
+    const resolvedSearchParams = searchParams ? await searchParams : undefined
+    const patient = buildPatientFromSearchParams(resolvedSearchParams)
 
-    const fetchedFacilities = await fetchFacilityMatchingInputs()
-    const facilities =
-        fetchedFacilities.length > 0 ? fetchedFacilities : demoFacilities
-
+    const facilities = await fetchFacilityMatchingInputs()
     const result = matchPatientToFacilities(patient, facilities)
+
+    console.log(
+        "TOP 5 MATCHES:",
+        result.matches.slice(0, 5).map((match) => ({
+            facilityName: match.facilityName,
+            totalScore: match.totalScore,
+            city: match.city,
+        })),
+    )
+
     const viewModels = result.matches.map(buildMatchViewModel)
-    const recommendationSourceLabel =
-        viewModels[0]?.presentation.recommendationSourceLabel ?? "Our recommendation"
 
     return (
         <main className="min-h-screen bg-white px-6 py-10 sm:py-14">

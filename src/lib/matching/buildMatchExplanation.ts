@@ -18,6 +18,7 @@ function formatLevelOfCare(level: string) {
             return level.charAt(0).toUpperCase() + level.slice(1)
     }
 }
+
 function formatInsuranceCarrier(carrier: string) {
     switch (carrier) {
         case "blue_cross_blue_shield":
@@ -55,13 +56,32 @@ export function buildMatchExplanation(
     const reasons: MatchReasonEvidence[] = []
     const cautions: string[] = []
 
+    const lifeFit = patient.lifeFitProfile
+
+    const wantsProfessionalProgram =
+        patient.wantsProfessionalProgram ||
+        lifeFit?.signals.professionalTrackDesired === true
+
+    const wantsFamilyProgram =
+        patient.wantsFamilyProgram ||
+        lifeFit?.signals.familyProgramDesired === true
+
     const matchedLevels = patient.desiredLevelsOfCare.filter((level) =>
         facility.detectedLevelsOfCare.includes(level),
     )
 
-    if (programs.levelMatches > 0) {
+    const primaryLevel = patient.desiredLevelsOfCare[0]
+
+    if (primaryLevel && facility.detectedLevelsOfCare.includes(primaryLevel)) {
         reasons.push({
-            label: "Aligned with your requested level of care",
+            label: "Matches your primary level of care",
+            snippet: `Includes: ${formatLevelOfCare(primaryLevel)}`,
+            sourceUrl: "#levels-of-care",
+            sourceLabel: "Levels of care",
+        })
+    } else if (programs.levelMatches > 0) {
+        reasons.push({
+            label: "Partial level-of-care alignment",
             snippet:
                 matchedLevels.length > 0
                     ? `Includes: ${matchedLevels.map(formatLevelOfCare).join(", ")}`
@@ -110,6 +130,14 @@ export function buildMatchExplanation(
             sourceUrl: firstEvidence?.pageUrl,
             sourceLabel: "Insurance details",
         })
+    } else if (patient.fundingType === "insurance") {
+        reasons.push({
+            label: "Likely accepts private insurance",
+            snippet:
+                "This facility appears to work with major insurance providers, but your specific plan should be confirmed.",
+            sourceUrl: "#insurance",
+            sourceLabel: "Insurance details",
+        })
     }
 
     if (patient.requiresMAT && facility.hasMATSignal) {
@@ -125,19 +153,25 @@ export function buildMatchExplanation(
         })
     }
 
-    if (patient.wantsProfessionalProgram && facility.hasProfessionalProgramSignal) {
+    if (wantsProfessionalProgram && facility.hasProfessionalProgramSignal) {
         reasons.push({
             label: "Professional program available",
-            snippet: "A professional-focused treatment track is available.",
+            snippet:
+                lifeFit?.signals.professionalTrackDesired
+                    ? "This facility appears to support work, licensing, or professional recovery needs."
+                    : "A professional-focused treatment track is available.",
             sourceUrl: "#professional-program",
             sourceLabel: "Professional program",
         })
     }
 
-    if (patient.wantsFamilyProgram && facility.hasFamilyProgramSignal) {
+    if (wantsFamilyProgram && facility.hasFamilyProgramSignal) {
         reasons.push({
             label: "Family support available",
-            snippet: "Family programming and support services are available.",
+            snippet:
+                lifeFit?.signals.familyProgramDesired
+                    ? "This facility appears to support family involvement and relationship-focused recovery goals."
+                    : "Family programming and support services are available.",
             sourceUrl: "#family-program",
             sourceLabel: "Family program",
         })

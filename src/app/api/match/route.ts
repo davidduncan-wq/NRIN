@@ -45,7 +45,7 @@ const usesBenzo = substances.includes("benzodiazepines");
     input.frequency === "daily" &&
     (input.lastUse === "today" || input.lastUse === "yesterday")
   ) {
-    return input.withdrawalSymptomsNow === "yes" ? "high" : "medium";
+    return input.withdrawalSymptomsNow === "no" ? "medium" : "high";
   }
 
   return "low";
@@ -84,16 +84,29 @@ function deriveLevelOfCare(
 ) {
   if (withdrawalRisk === "high") return "detox";
 
-  const residentialTriggers = [
-    housingStable === "no",
-    relapseRisk === "high",
-    supportLevel === "low",
-    coOccurring === "likely",
-  ].filter(Boolean).length;
+  if (
+    housingStable === "no" ||
+    relapseRisk === "high" ||
+    supportLevel === "low"
+  ) {
+    return "residential";
+  }
 
-  if (residentialTriggers >= 2) return "residential";
+  if (
+    relapseRisk === "medium" ||
+    supportLevel === "medium" ||
+    coOccurring === "likely"
+  ) {
+    return "php";
+  }
 
-  if (residentialTriggers === 1) return "php";
+  if (
+    housingStable === "yes" &&
+    relapseRisk === "low" &&
+    withdrawalRisk === "low"
+  ) {
+    return "outpatient";
+  }
 
   return "iop";
 }

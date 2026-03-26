@@ -12,8 +12,9 @@ import { Step1Demographics } from "./components/Step1Demographics";
 import { Step2Contact } from "./components/Step2Contact";
 import { Step4Substances } from "./components/Step4Substances";
 import { useRouter } from "next/navigation";
+import { buildPatientMatchingInput, deriveDesiredLevelsOfCare } from "@/lib/matching/buildPatientProfile";
 
-import type { InsuranceCarrier, LevelOfCare, PatientMatchingInput } from "@/lib/matching/types";
+import type { LevelOfCare } from "@/lib/matching/types";
 
 
 // Smooth wrapper (keep transitions, but never hide content)
@@ -102,96 +103,6 @@ function computeAgeYears(isoDate: string | undefined | null): number | null {
 
     return age;
 }
-function deriveDesiredLevelsOfCare(result: Recommendation): LevelOfCare[] {
-    const text = result.recommendedLevelOfCare.toLowerCase();
-    const levels: LevelOfCare[] = [];
-
-    if (text.includes("detox")) levels.push("detox");
-    if (text.includes("residential")) levels.push("residential");
-    if (text.includes("php")) levels.push("php");
-    if (text.includes("iop")) levels.push("iop");
-    if (text.includes("outpatient")) levels.push("outpatient");
-    if (text.includes("aftercare")) levels.push("aftercare");
-
-    if (levels.length === 0) {
-        levels.push("residential");
-    }
-
-    return levels;
-}
-
-function deriveInsuranceCarrierFromNotes(notes: string): InsuranceCarrier | undefined {
-    const lower = notes.toLowerCase();
-
-    if (lower.includes("blue cross") || lower.includes("bcbs")) return "blue_cross_blue_shield";
-    if (lower.includes("aetna")) return "aetna";
-    if (lower.includes("cigna")) return "cigna";
-    if (lower.includes("united")) return "united_healthcare";
-    if (lower.includes("humana")) return "humana";
-    if (lower.includes("anthem")) return "anthem";
-    if (lower.includes("tricare")) return "tricare";
-    if (lower.includes("medicare")) return "medicare";
-    if (lower.includes("medicaid")) return "medicaid";
-    if (lower.includes("self pay") || lower.includes("self-pay")) return "self_pay";
-
-    return undefined;
-}
-
-function buildPatientMatchingInput(
-    form: FormState,
-    result: Recommendation,
-): PatientMatchingInput {
-    const notes = [
-        form.workDailyLifeNotes,
-        form.familyRelationshipNotes,
-        form.locationEnvironmentNotes,
-        form.treatmentGoalsNotes,
-        form.additionalContextNotes,
-    ]
-        .join(" ")
-        .toLowerCase();
-
-    const substances = form.substances.map((value) => value.toLowerCase());
-
-    const requiresMAT =
-        substances.some((value) =>
-            ["fentanyl", "opioids", "opioid", "heroin"].includes(value),
-        ) || notes.includes("mat");
-
-    const wantsFamilyProgram =
-        notes.includes("family") ||
-        notes.includes("children") ||
-        notes.includes("kids") ||
-        notes.includes("wife") ||
-        notes.includes("husband") ||
-        notes.includes("divorce");
-
-    const wantsProfessionalProgram =
-        notes.includes("career") ||
-        notes.includes("job") ||
-        notes.includes("work") ||
-        notes.includes("pilot") ||
-        notes.includes("doctor") ||
-        notes.includes("nurse") ||
-        notes.includes("attorney") ||
-        notes.includes("executive") ||
-        notes.includes("monitoring");
-
-    const prefersDualDiagnosis =
-        result.coOccurring.toLowerCase() !== "none" &&
-        result.coOccurring.toLowerCase() !== "low";
-
-    return {
-        needsDetox: deriveDesiredLevelsOfCare(result).includes("detox"),
-        desiredLevelsOfCare: deriveDesiredLevelsOfCare(result),
-        prefersDualDiagnosis,
-        requiresMAT,
-        insuranceCarrier: deriveInsuranceCarrierFromNotes(notes),
-        wantsProfessionalProgram,
-        wantsFamilyProgram,
-        state: form.state || undefined,
-    };
-}
 
 export type FormState = {
     firstName: string;
@@ -240,6 +151,11 @@ export type FormState = {
     supportivePerson: string;
 
     lifeFitCaptureMode: "" | "full" | "skip";
+    environmentPreference: "" | "island" | "desert" | "mountains" | "east_coast" | "west_coast" | "urban" | "dont_care";
+    insuranceStatus: "" | "yes" | "no" | "not_sure";
+    insuranceType: "" | "private" | "medicaid" | "medicare" | "va" | "not_sure";
+    selfPayIntent: "" | "yes" | "no" | "not_sure";
+
     workDailyLifeNotes: string;
     familyRelationshipNotes: string;
     locationEnvironmentNotes: string;
@@ -296,6 +212,11 @@ const initialFormState: FormState = {
     supportivePerson: "",
 
     lifeFitCaptureMode: "",
+    environmentPreference: "",
+    insuranceStatus: "",
+    insuranceType: "",
+    selfPayIntent: "",
+
     workDailyLifeNotes: "",
     familyRelationshipNotes: "",
     locationEnvironmentNotes: "",
@@ -375,7 +296,11 @@ export default function PatientIntakePage() {
                     substances: form.substances,
                     lastUse: form.lastUse,
                     frequency: form.frequency,
-                    dailyAlcoholOrBenzo: "unknown",
+                    dailyAlcoholOrBenzo: form.substances.some((value) =>
+                        ["alcohol", "benzodiazepines"].includes(value.toLowerCase())
+                    )
+                        ? "yes"
+                        : "no",
                     severeWithdrawalHistory: form.severeWithdrawalHistory,
                     withdrawalSymptomsNow: "unknown",
                     priorTreatment: form.priorTreatment,
@@ -440,6 +365,13 @@ export default function PatientIntakePage() {
                 use_frequency: form.frequency || null,
                 withdrawal_risk: null,
                 last_use_date: null,
+                life_fit_capture_mode: form.lifeFitCaptureMode || null,
+                environment_preference: form.environmentPreference || null,
+                work_daily_life_notes: form.workDailyLifeNotes || null,
+                family_relationship_notes: form.familyRelationshipNotes || null,
+                location_environment_notes: form.locationEnvironmentNotes || null,
+                treatment_goals_notes: form.treatmentGoalsNotes || null,
+                additional_context_notes: form.additionalContextNotes || null,
             };
 
             const {
@@ -494,9 +426,28 @@ export default function PatientIntakePage() {
                 params.set("insuranceCarrier", patientInput.insuranceCarrier);
             }
 
+            if (patientInput.fundingType) {
+                params.set("fundingType", patientInput.fundingType);
+            }
+
             if (patientInput.state) {
                 params.set("state", patientInput.state);
             }
+
+            if (form.insuranceStatus) {
+                params.set("insuranceStatus", form.insuranceStatus);
+            }
+
+            if (form.insuranceType) {
+                params.set("insuranceType", form.insuranceType);
+            }
+
+            if (form.selfPayIntent) {
+                params.set("selfPayIntent", form.selfPayIntent);
+            }
+
+            params.set("patientId", patientId);
+            params.set("caseId", caseData.id);
 
             router.push(`/patient/matches?${params.toString()}`);
         } catch (err) {

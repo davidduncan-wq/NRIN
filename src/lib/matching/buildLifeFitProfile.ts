@@ -72,24 +72,29 @@ export function buildLifeFitProfile(form: FormState): LifeFitProfile {
 
   const professionalTrackDesired =
     notes.includes("pilot") ||
+    notes.includes("airline") ||
+    notes.includes("flight") ||
+    notes.includes("faa") ||
+    notes.includes("physician") ||
     notes.includes("doctor") ||
     notes.includes("nurse") ||
+    notes.includes("rn") ||
+    notes.includes("md") ||
     notes.includes("attorney") ||
+    notes.includes("lawyer") ||
+    notes.includes("esq") ||
     notes.includes("executive") ||
+    notes.includes("professional") ||
     notes.includes("license") ||
-    notes.includes("monitoring")
-
-  let preferredEnvironment: string | undefined
-
-  if (notes.includes("beach") || notes.includes("coastal")) {
-    preferredEnvironment = "coastal"
-  } else if (notes.includes("mountain")) {
-    preferredEnvironment = "mountains"
-  } else if (notes.includes("city") || notes.includes("urban")) {
-    preferredEnvironment = "urban"
-  } else if (notes.includes("quiet") || notes.includes("nature")) {
-    preferredEnvironment = "quiet"
-  }
+    notes.includes("licensed") ||
+    notes.includes("board") ||
+    notes.includes("credential") ||
+    notes.includes("monitoring") ||
+    notes.includes("career") ||
+    notes.includes("job") ||
+    notes.includes("work") ||
+    notes.includes("fired") ||
+    notes.includes("lost my job")
 
   return {
     captureMode,
@@ -100,7 +105,7 @@ export function buildLifeFitProfile(form: FormState): LifeFitProfile {
     },
     preferences: {
       wantsDistanceFromHome: wantsDistanceFromHome || undefined,
-      preferredEnvironment,
+      preferredEnvironment: form.environmentPreference || undefined,
       privacyImportant: privacyImportant || undefined,
     },
     signals: {

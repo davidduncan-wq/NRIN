@@ -19,6 +19,7 @@ export type MatchViewModel = {
         subtitle?: string
         location?: string
         logoUrl?: string
+        reasonPills: string[]
         recommendationSourceLabel: "Our recommendation",
         heroImageUrl?: string
         primaryCtaLabel: string
@@ -60,10 +61,10 @@ function buildAtAGlance(match: FacilityMatchResult) {
         items.push("Detox available")
     }
 
-    if (match.breakdown.programs.levelMatches >= 2) {
-        items.push("Multiple levels of care")
-    } else if (match.breakdown.programs.levelMatches === 1) {
-        items.push("Appropriate level of care")
+    if (match.breakdown.programs.levelMatchScore >= 70) {
+        items.push("Primary care level match")
+    } else if (match.breakdown.programs.levelMatchScore >= 25) {
+        items.push("Partial care-path match")
     }
 
     if (match.breakdown.insurance.insuranceMatch) {
@@ -74,12 +75,16 @@ function buildAtAGlance(match: FacilityMatchResult) {
         items.push("MAT available")
     }
 
+    if (match.breakdown.specialties.professionalProgramScore > 0) {
+        items.push("Professional support available")
+    }
+
     if (match.breakdown.specialties.familyProgramScore > 0) {
         items.push("Family support available")
     }
 
     if (items.length === 0) {
-        items.push("Aligned with key care needs")
+        items.push("Relevant care options available")
     }
 
     return items.slice(0, 4)
@@ -87,10 +92,14 @@ function buildAtAGlance(match: FacilityMatchResult) {
 
 function buildNextStep(match: FacilityMatchResult) {
     if (match.breakdown.insurance.insuranceMatch) {
-        return "A good next step is to confirm admissions timing, insurance details, and any program-specific requirements."
+        return "A good next step is to confirm admissions timing, finalize insurance details, and review any program-specific requirements."
     }
 
-    return "A good next step is to confirm admissions timing, payment options, and whether the program fits your immediate care needs."
+    if (match.breakdown.insurance.score > 0) {
+        return "A good next step is to verify insurance compatibility, confirm admissions timing, and make sure the program fits your immediate care needs."
+    }
+
+    return "A good next step is to confirm admissions timing, discuss payment options, and make sure the program fits your immediate care needs."
 }
 
 function normalizeReason(
@@ -115,23 +124,18 @@ function buildEyebrow(match: FacilityMatchResult) {
 }
 
 function buildSubtitle(match: FacilityMatchResult) {
-    if (
-        match.breakdown.programs.detoxScore > 0 &&
-        match.breakdown.programs.levelMatches >= 2
-    ) {
-        return "Structured care with detox and continued support."
+    if (match.breakdown.programs.levelMatchScore >= 70) {
+        return match.breakdown.programs.detoxScore > 0
+            ? "Detox support with strong primary care-level alignment."
+            : "Strong alignment with your primary level of care."
+    }
+
+    if (match.breakdown.programs.levelMatchScore >= 25) {
+        return "Partial alignment with your care needs."
     }
 
     if (match.breakdown.programs.detoxScore > 0) {
-        return "Detox support with continued care options."
-    }
-
-    if (match.breakdown.programs.levelMatches >= 2) {
-        return "A strong fit for the level of care you may need."
-    }
-
-    if (match.breakdown.programs.levelMatches === 1) {
-        return "Aligned with an important part of your care needs."
+        return "Detox support is available."
     }
 
     return "A credible treatment option."
@@ -144,22 +148,22 @@ function buildReassuranceLine(match: FacilityMatchResult) {
 function buildExplanationSummary(match: FacilityMatchResult) {
     const parts: string[] = []
 
-    if (match.breakdown.programs.detoxScore > 0) {
-        parts.push("Detox support is available.")
-    }
-
-    if (match.breakdown.programs.levelMatches >= 2) {
-        parts.push("The level of care aligns closely with what you may need.")
-    } else if (match.breakdown.programs.levelMatches === 1) {
-        parts.push("An important part of your care needs appears to align here.")
+    if (match.breakdown.programs.levelMatchScore >= 70) {
+        parts.push("This facility matches your primary level of care.")
+    } else if (match.breakdown.programs.levelMatchScore >= 25) {
+        parts.push("This facility covers part of the level-of-care path you may need.")
     }
 
     if (match.breakdown.insurance.insuranceMatch) {
-        parts.push("This facility appears to work with your insurance.")
+        parts.push("It appears to work with your insurance.")
     }
 
     if (match.breakdown.specialties.matScore > 0) {
         parts.push("Medication-supported treatment is available.")
+    }
+
+    if (match.breakdown.specialties.professionalProgramScore > 0) {
+        parts.push("Professional-track support is available.")
     }
 
     if (match.breakdown.specialties.familyProgramScore > 0) {
@@ -176,6 +180,8 @@ function buildExplanationSummary(match: FacilityMatchResult) {
 export function buildMatchViewModel(match: FacilityMatchResult): MatchViewModel {
     const reasons = match.explanation.reasons.map(normalizeReason)
     const cautions = match.explanation.cautions
+    const strengths = reasons
+        .filter((reason) => reason.label)
 
     return {
         id: match.facilityId,
@@ -189,6 +195,44 @@ export function buildMatchViewModel(match: FacilityMatchResult): MatchViewModel 
             subtitle: buildSubtitle(match),
             location: match.city,
             logoUrl: match.logoUrl,
+            
+            reasonPills: (() => {
+    const labels = strengths.map((r) => r.label)
+
+    const insurance = labels.find((l) =>
+        l.toLowerCase().includes("accepts") ||
+        l.toLowerCase().includes("insurance")
+    )
+
+    const primary = labels.find((l) =>
+        l.toLowerCase().includes("primary level")
+    )
+
+    const mat = labels.find((l) =>
+        l.toLowerCase().includes("medication")
+    )
+
+    const professional = labels.find((l) =>
+        l.toLowerCase().includes("professional")
+    )
+
+    const family = labels.find((l) =>
+        l.toLowerCase().includes("family")
+    )
+
+    const ordered = [
+        primary,
+        insurance,
+        mat,
+        professional,
+        family,
+        ...labels,
+    ].filter(Boolean)
+
+    const unique = [...new Set(ordered)]
+
+    return unique as string[]
+})(),
 
             recommendationSourceLabel: "Our recommendation",
 
@@ -201,11 +245,14 @@ export function buildMatchViewModel(match: FacilityMatchResult): MatchViewModel 
         },
         brochure: {
             atAGlance: buildAtAGlance(match),
-            strengths: reasons.slice(0, 4),
+            strengths,
             watchouts: cautions,
             nextStep: buildNextStep(match),
             supportingInfo: reasons.filter(
-                (reason) => reason.snippet || reason.sourceLabel || reason.sourceUrl,
+                (reason) =>
+                    !!reason.sourceUrl &&
+                    !!reason.snippet &&
+                    !strengths.some((strength) => strength.label === reason.label),
             ),
         },
         explanation: {

@@ -30,16 +30,16 @@ const substancesList = [
 const lastUseOptions = [
     { value: "today", label: "Today" },
     { value: "yesterday", label: "Yesterday" },
-    { value: "2-3_days", label: "2–3 days ago" },
-    { value: "4-7_days", label: "4–7 days ago" },
-    { value: "more_than_a_week", label: "More than a week ago" },
+    { value: "2-3", label: "2–3 days ago" },
+    { value: "4-7", label: "4–7 days ago" },
+    { value: "8-30", label: "More than a week ago" },
 ];
 
 const frequencyOptions = [
     { value: "daily", label: "Daily" },
-    { value: "3-5_days_week", label: "3–5 days / week" },
-    { value: "1-2_days_week", label: "1–2 days / week" },
-    { value: "less_than_once_week", label: "Less than once a week" },
+    { value: "3-5", label: "3–5 days / week" },
+    { value: "1-2", label: "1–2 days / week" },
+    { value: "less", label: "Less than once a week" },
 ];
 
 const treatmentWhenOptions = [

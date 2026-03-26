@@ -11,6 +11,10 @@ import type {
     PatientMatchingInput,
 } from "./types"
 
+function normalizeDedupKey(name?: string, city?: string) {
+    return `${(name ?? "").trim().toLowerCase()}::${(city ?? "").trim().toLowerCase()}`
+}
+
 export function matchPatientToFacilities(
     patient: PatientMatchingInput,
     facilities: FacilityMatchingInput[],
@@ -21,13 +25,13 @@ export function matchPatientToFacilities(
             const programs = scorePrograms(patient, facility).score
             const insurance = scoreInsurance(patient, facility)
             const specialties = scoreSpecialties(patient, facility)
-            const confidence = scoreConfidence(facility)
+            const confidence = scoreConfidence(patient, facility)
 
             const totalScore = hardFilter.passed
                 ? programs.totalScore +
-                insurance.score +
-                specialties.totalScore +
-                confidence.score
+                  insurance.score +
+                  specialties.totalScore +
+                  confidence.score
                 : 0
 
             const explanation = buildMatchExplanation(
@@ -60,5 +64,33 @@ export function matchPatientToFacilities(
         .filter((match) => match.hardFilterPassed)
         .sort((a, b) => b.totalScore - a.totalScore)
 
-    return { matches }
+    const seenKeys = new Set<string>()
+    const deduped = matches.filter((match) => {
+        const key = normalizeDedupKey(match.facilityName, match.city)
+        if (seenKeys.has(key)) return false
+        seenKeys.add(key)
+        return true
+    })
+
+    const diversified: FacilityMatchResult[] = []
+    const usedCities = new Set<string>()
+
+    for (const match of deduped) {
+        const cityKey = (match.city ?? "").trim().toLowerCase()
+
+        if (diversified.length < 3) {
+            if (cityKey && usedCities.has(cityKey)) continue
+            diversified.push(match)
+            if (cityKey) usedCities.add(cityKey)
+            continue
+        }
+
+        diversified.push(match)
+
+        if (diversified.length === 5) break
+    }
+
+    return {
+        matches: diversified.length > 0 ? diversified : deduped.slice(0, 5),
+    }
 }

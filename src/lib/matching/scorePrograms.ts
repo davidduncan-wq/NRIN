@@ -18,14 +18,25 @@ export function scorePrograms(
   const facilityLevels = new Set(facility.detectedLevelsOfCare)
   const requestedLevels = patient.desiredLevelsOfCare
 
-  const levelMatches = requestedLevels.filter((level) =>
-    facilityLevels.has(level),
-  ).length
+  const primaryLevel = requestedLevels[0]
 
-  const levelRequested = requestedLevels.length
+  const primaryMatch = primaryLevel
+    ? facilityLevels.has(primaryLevel)
+    : false
 
-  const levelMatchScore =
-    levelRequested > 0 ? Math.round((levelMatches / levelRequested) * 80) : 0
+  const secondaryMatches = requestedLevels
+    .slice(1)
+    .filter((level) => facilityLevels.has(level)).length
+
+  let levelMatchScore = 0
+
+  if (primaryMatch) {
+    levelMatchScore = 70
+  } else if (secondaryMatches > 0) {
+    levelMatchScore = 25
+  } else {
+    levelMatchScore = 0
+  }
 
   const detoxScore =
     patient.needsDetox && facilityLevels.has("detox")
@@ -40,8 +51,8 @@ export function scorePrograms(
   return {
     hardFilter,
     score: {
-      levelMatches,
-      levelRequested,
+      levelMatches: primaryMatch ? 1 : secondaryMatches,
+      levelRequested: requestedLevels.length,
       levelMatchScore,
       detoxScore,
       dualDiagnosisScore,

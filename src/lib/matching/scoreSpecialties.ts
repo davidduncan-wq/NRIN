@@ -8,20 +8,32 @@ export function scoreSpecialties(
   patient: PatientMatchingInput,
   facility: FacilityMatchingInput,
 ): SpecialtyScoreBreakdown {
+  const lifeFit = patient.lifeFitProfile
+
+  const requiresMAT = patient.requiresMAT
+
+  const wantsProfessionalProgram =
+    patient.wantsProfessionalProgram ||
+    lifeFit?.signals.professionalTrackDesired === true
+
+  const wantsFamilyProgram =
+    patient.wantsFamilyProgram ||
+    lifeFit?.signals.familyProgramDesired === true
+
   const matScore =
-    patient.requiresMAT && facility.hasMATSignal
+    requiresMAT && facility.hasMATSignal
       ? 8
-      : patient.requiresMAT
+      : requiresMAT
         ? 0
         : 0
 
   const professionalProgramScore =
-    patient.wantsProfessionalProgram && facility.hasProfessionalProgramSignal
+    wantsProfessionalProgram && facility.hasProfessionalProgramSignal
       ? 6
       : 0
 
   const familyProgramScore =
-    patient.wantsFamilyProgram && facility.hasFamilyProgramSignal
+    wantsFamilyProgram && facility.hasFamilyProgramSignal
       ? 6
       : 0
 
