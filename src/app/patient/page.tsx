@@ -78,9 +78,9 @@ type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 type Recommendation = {
     withdrawalRisk: string;
     relapseRisk: string;
-    coOccurring: string;
+    mentalHealthSignal: string;
     supportLevel: string;
-    recommendedLevelOfCare: string;
+    recommendedProgramType: string;
 };
 
 function computeAgeYears(isoDate: string | undefined | null): number | null {
@@ -151,7 +151,7 @@ export type FormState = {
     supportivePerson: string;
 
     lifeFitCaptureMode: "" | "full" | "skip";
-    environmentPreference: "" | "island" | "desert" | "mountains" | "east_coast" | "west_coast" | "urban" | "dont_care";
+    environmentPreference: "" | "island" | "desert" | "mountains" | "east_coast" | "west_coast" | "urban" | "close_to_home" | "dont_care";
     insuranceStatus: "" | "yes" | "no" | "not_sure";
     insuranceType: "" | "private" | "medicaid" | "medicare" | "va" | "not_sure";
     selfPayIntent: "" | "yes" | "no" | "not_sure";
@@ -163,6 +163,10 @@ export type FormState = {
     additionalContextNotes: string;
 
     initials: string;
+
+    insuranceCarrier?: string;
+    insuranceDetailsTiming?: "now" | "later";
+    insuranceInputMethod?: "scan" | "manual";
 };
 
 const initialFormState: FormState = {
@@ -430,8 +434,24 @@ export default function PatientIntakePage() {
                 params.set("fundingType", patientInput.fundingType);
             }
 
+            if (patientInput.city) {
+                params.set("city", patientInput.city);
+            }
+
             if (patientInput.state) {
                 params.set("state", patientInput.state);
+            }
+
+            if (patientInput.latitude) {
+                params.set("latitude", String(patientInput.latitude));
+            }
+
+            if (patientInput.longitude) {
+                params.set("longitude", String(patientInput.longitude));
+            }
+
+            if (form.environmentPreference) {
+                params.set("environmentPreference", form.environmentPreference);
             }
 
             if (form.insuranceStatus) {

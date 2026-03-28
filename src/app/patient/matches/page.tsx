@@ -12,7 +12,7 @@ export default async function PatientMatchesPage({
     const resolvedSearchParams = searchParams ? await searchParams : undefined
     const patient = buildPatientFromSearchParams(resolvedSearchParams)
 
-    const facilities = await fetchFacilityMatchingInputs()
+    const facilities = await fetchFacilityMatchingInputs({ insuranceCarrier: patient.insuranceCarrier })
     const result = matchPatientToFacilities(patient, facilities)
 
     console.log(

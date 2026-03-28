@@ -4,6 +4,22 @@ import type {
   PatientMatchingInput,
 } from "./types"
 
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const R = 3958.8; // miles
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export function scoreConfidence(
   patient: PatientMatchingInput,
   facility: FacilityMatchingInput,
@@ -19,6 +35,56 @@ export function scoreConfidence(
 
   if (captureMode === "skip") {
     score = Math.max(0, score - 3)
+  }
+
+  const preferredEnvironment = patient?.lifeFitProfile?.preferences?.preferredEnvironment;
+
+  if (preferredEnvironment === "close_to_home") {
+    if (
+      patient.city &&
+      facility.city &&
+      facility.city.toLowerCase().includes(patient.city.toLowerCase())
+    ) {
+      score += 5;
+
+      if (
+        patient.latitude &&
+        patient.longitude &&
+        facility.latitude &&
+        facility.longitude
+      ) {
+        const distance = haversineDistance(
+          patient.latitude,
+          patient.longitude,
+          facility.latitude,
+          facility.longitude
+        );
+
+        if (distance < 10) score += 5;
+        else if (distance < 25) score += 3;
+        else if (distance < 50) score += 1;
+      }
+
+      if (
+        patient.latitude &&
+        patient.longitude &&
+        facility.latitude &&
+        facility.longitude
+      ) {
+        const distance = haversineDistance(
+          patient.latitude,
+          patient.longitude,
+          facility.latitude,
+          facility.longitude
+        );
+
+        if (distance < 10) score += 5;
+        else if (distance < 25) score += 3;
+        else if (distance < 50) score += 1;
+      }
+    } else if (patient.state && facility.state && patient.state === facility.state) {
+      score += 2;
+    }
   }
 
   return {

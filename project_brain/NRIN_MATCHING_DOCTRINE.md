@@ -1,26 +1,85 @@
-NRIN Matching Doctrine
+# nrin — MATCHING DOCTRINE
 
-1. The matching engine is the primary authority.
-   It determines the best clinical and logistical placements
-   based on patient needs and verified facility capabilities.
+## Purpose
 
-2. Referral exchange exists only as a secondary routing layer.
-   It activates when a facility cannot accept a patient.
+This document defines the role of the matching engine inside nrin.
 
-3. The referral exchange cannot override or hide the matching results.
+The matcher is responsible for recommendation truth.
+It is not the case layer.
+It is not the facility workflow layer.
+It is not the referral exchange layer.
 
-4. Patient leads have economic value and facilities may transfer them,
-   but all transfers occur transparently within the system.
+---
 
-5. Facilities accumulate reliability metrics based on observed behavior
-   (acceptance rate, referral rate, insurance accuracy, etc.).
-   These metrics influence matching weight but do not block participation.
+## Core Principle
 
-6. Referral chains are recorded to detect structural abuse,
-   but enforcement focuses on behavior patterns rather than accusations.
+The matching engine is the primary authority for recommendation quality.
 
-7. The system's purpose is not to eliminate referrals,
-   but to ensure that patient placement is guided by
-   best-fit treatment rather than opaque trading networks.
+It determines best-fit treatment options based on:
+- patient needs
+- verified facility capabilities
+- financial plausibility
+- contextual support factors
 
-   IMPORTANT*** NRIN may use crawler- or asset-derived facility brand colors as restrained accents in the recommendation and brochure surfaces, while preserving NRIN’s own typography, layout, readability, and design system control.
+---
+
+## Matching Is Not Referral Exchange
+
+nrin recommendation output should be described as:
+
+- recommendation
+- recommended facility
+- recommended options
+
+Do not use "referral" as the generic label for system recommendation output.
+
+"Referral exchange" is a distinct facility-to-facility transfer concept and belongs to a different layer.
+
+---
+
+## Ranking Layers
+
+1. hard filters
+2. clinical / viability fit
+3. financial plausibility
+4. specialty / support fit
+5. future preference tie-breakers
+
+---
+
+## Product Rule
+
+The matcher recommends.
+It does not admit.
+It does not disposition.
+It does not control facility workflow.
+
+Once a patient selects a facility and facility-side handling begins, the system moves from:
+- recommendation truth
+
+into:
+- case truth
+- facility workflow truth
+
+---
+
+## Current Doctrine
+
+- recommendation output must stay distinct from case status
+- case status must stay distinct from facility workflow status
+- facility workflow status must stay distinct from referral exchange behavior
+
+---
+
+## Referral Exchange Reminder
+
+Facilities may later recommend / pass a patient to another facility.
+That does not invalidate the matcher.
+It means the system is moving from recommendation into exchange-aware operational reality.
+
+---
+
+## Design Reminder
+
+nrin may use crawler- or asset-derived facility brand colors as restrained accents in recommendation and brochure surfaces, while preserving nrin typography, layout, readability, and design-system control.
+

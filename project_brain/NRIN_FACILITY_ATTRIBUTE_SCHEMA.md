@@ -50,7 +50,6 @@ Demographic or specialty patient groups.
 young_adults_program
 women_only_program
 men_only_program
-lgbtq_affirming
 veterans_program
 first_responder_program
 executive_program

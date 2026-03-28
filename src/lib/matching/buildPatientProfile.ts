@@ -10,9 +10,9 @@ import type {
 type Recommendation = {
   withdrawalRisk: string
   relapseRisk: string
-  coOccurring: string
+  mentalHealthSignal: string
   supportLevel: string
-  recommendedLevelOfCare: string
+  recommendedProgramType: string
 }
 
 function parseBoolean(value: string | string[] | undefined, fallback: boolean) {
@@ -73,7 +73,7 @@ function deriveFundingTypeFromSearchParams(
 }
 
 export function deriveDesiredLevelsOfCare(result: Recommendation): LevelOfCare[] {
-  const text = result.recommendedLevelOfCare.toLowerCase()
+  const text = result.recommendedProgramType.toLowerCase()
   const levels: LevelOfCare[] = []
 
   if (text.includes("detox")) levels.push("detox")
@@ -144,12 +144,12 @@ export function buildPatientMatchingInput(
     )
 
   const prefersDualDiagnosis =
-    result.coOccurring.toLowerCase() !== "none" &&
-    result.coOccurring.toLowerCase() !== "low"
+    result.mentalHealthSignal.toLowerCase() !== "none" &&
+    result.mentalHealthSignal.toLowerCase() !== "low"
 
   const noteCarrier = deriveInsuranceCarrierFromNotes(notes)
 
-  const insuranceCarrier =
+  const insuranceCarrier = form.insuranceCarrier?.toLowerCase() ||
     form.insuranceStatus === "yes"
       ? noteCarrier ??
         (form.insuranceType === "medicaid"
@@ -175,7 +175,10 @@ export function buildPatientMatchingInput(
     fundingType,
     wantsProfessionalProgram,
     wantsFamilyProgram,
+    city: form.city || undefined,
     state: form.state || undefined,
+    latitude: form.addressLatitude || undefined,
+    longitude: form.addressLongitude || undefined,
     lifeFitProfile,
   }
 }
@@ -199,6 +202,12 @@ export function buildPatientFromSearchParams(
     ["iop"],
   )
 
+  const environmentPreference =
+    typeof searchParams.environmentPreference === "string" &&
+    searchParams.environmentPreference.trim() !== ""
+      ? searchParams.environmentPreference
+      : undefined
+
   return {
     needsDetox: parseBoolean(searchParams.needsDetox, false),
     desiredLevelsOfCare,
@@ -214,9 +223,30 @@ export function buildPatientFromSearchParams(
       searchParams.wantsFamilyProgram,
       false,
     ),
+    city:
+      typeof searchParams.city === "string" && searchParams.city.trim() !== ""
+        ? searchParams.city
+        : undefined,
     state:
       typeof searchParams.state === "string" && searchParams.state.trim() !== ""
         ? searchParams.state
         : undefined,
+    latitude:
+      typeof searchParams.latitude === "string"
+        ? Number(searchParams.latitude)
+        : undefined,
+    longitude:
+      typeof searchParams.longitude === "string"
+        ? Number(searchParams.longitude)
+        : undefined,
+    lifeFitProfile: environmentPreference
+      ? {
+          captureMode: "full",
+          constraints: {},
+          preferences: { preferredEnvironment: environmentPreference },
+          signals: {},
+          narrativeSummary: "",
+        }
+      : undefined,
   }
 }

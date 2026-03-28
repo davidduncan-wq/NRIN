@@ -18,6 +18,7 @@ const ENV_OPTIONS = [
     { value: "east_coast", label: "East Coast" },
     { value: "west_coast", label: "West Coast" },
     { value: "urban", label: "Urban" },
+    { value: "close_to_home", label: "Keep me close to home" },
 ] as const;
 
 const INSURANCE_STATUS_OPTIONS = [
@@ -54,8 +55,8 @@ function ChoicePill({
             type="button"
             onClick={onClick}
             className={`rounded-xl border px-4 py-2 text-sm font-medium transition ${active
-                    ? "border-sky-300 bg-sky-50 text-sky-900"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                ? "border-sky-300 bg-sky-50 text-sky-900"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
         >
             {label}
@@ -146,46 +147,19 @@ function InsuranceStatusSection({
                             setForm((prev) => ({
                                 ...prev,
                                 insuranceStatus: option.value,
+                                insuranceDetailsTiming: undefined,
                                 insuranceType: option.value === "yes" ? prev.insuranceType : "",
                                 selfPayIntent: option.value === "no" ? prev.selfPayIntent : "",
                             }))
                         }
                     />
+                    
                 ))}
             </div>
         </SectionShell>
     );
 }
 
-function InsuranceTypeSection({
-    form,
-    setForm,
-}: Pick<Step5LifeFitProps, "form" | "setForm">) {
-    if (form.insuranceStatus !== "yes") return null;
-
-    return (
-        <SectionShell
-            title="What type of insurance?"
-            body="This helps us understand likely coverage constraints without asking for a carrier too early."
-        >
-            <div className="flex flex-wrap gap-2">
-                {INSURANCE_TYPE_OPTIONS.map((option) => (
-                    <ChoicePill
-                        key={option.value}
-                        active={form.insuranceType === option.value}
-                        label={option.label}
-                        onClick={() =>
-                            setForm((prev) => ({
-                                ...prev,
-                                insuranceType: option.value,
-                            }))
-                        }
-                    />
-                ))}
-            </div>
-        </SectionShell>
-    );
-}
 
 function SelfPaySection({
     form,
@@ -334,8 +308,11 @@ export function Step5LifeFit({
                     </p>
                 </div>
 
-                                <InsuranceStatusSection form={form} setForm={setForm} />
+                <InsuranceStatusSection form={form} setForm={setForm} />
                 <InsuranceTypeSection form={form} setForm={setForm} />
+                <InsuranceCarrierSection form={form} setForm={setForm} />
+                <InsuranceTimingSection form={form} setForm={setForm} />
+                <InsuranceMethodSection form={form} setForm={setForm} />
                 <SelfPaySection form={form} setForm={setForm} />
                 <EnvironmentPreferenceSection form={form} setForm={setForm} />
                 <NarrativeSection form={form} setForm={setForm} />
@@ -372,5 +349,128 @@ export function Step5LifeFit({
                 </div>
             </section>
         </StepShell>
+    );
+}
+
+
+function InsuranceCarrierSection({ form, setForm }: any) {
+    if (form.insuranceStatus !== "yes") return null;
+
+    return (
+        <SectionShell title="Who is your insurance with?" body="You can keep this broad for now.">
+            <input
+                type="text"
+                value={form.insuranceCarrier || ""}
+                onChange={(e) =>
+                    setForm((prev: any) => ({
+                        ...prev,
+                        insuranceCarrier: e.target.value,
+                    }))
+                }
+                placeholder="e.g. Blue Cross, Aetna, Cigna"
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+            />
+        </SectionShell>
+    );
+}
+
+function InsuranceTimingSection({ form, setForm }: any) {
+    if (form.insuranceStatus !== "yes" || !form.insuranceType) return null;
+
+    return (
+        <SectionShell title="Add your insurance details now or later?" body="">
+            <div className="flex gap-2">
+                <ChoicePill
+                    active={form.insuranceDetailsTiming === "now"}
+                    label="Add now"
+                    onClick={() =>
+                        setForm((prev: any) => ({
+                            ...prev,
+                            insuranceDetailsTiming: "now",
+                        }))
+                    }
+                />
+                <ChoicePill
+                    active={form.insuranceDetailsTiming === "later"}
+                    label="Add later"
+                    onClick={() =>
+                        setForm((prev: any) => ({
+                            ...prev,
+                            insuranceDetailsTiming: "later",
+                        }))
+                    }
+                />
+            </div>
+        </SectionShell>
+    );
+}
+
+function InsuranceMethodSection({ form, setForm }: any) {
+    if (form.insuranceStatus !== "yes" || form.insuranceDetailsTiming !== "now") return null;
+
+    return (
+        <SectionShell title="How would you like to add it?" body="">
+            <div className="flex gap-2">
+                <ChoicePill
+                    active={form.insuranceInputMethod === "scan"}
+                    label="Scan / upload card"
+                    onClick={() =>
+                        setForm((prev: any) => ({
+                            ...prev,
+                            insuranceInputMethod: "scan",
+                        }))
+                    }
+                />
+                <ChoicePill
+                    active={form.insuranceInputMethod === "manual"}
+                    label="Enter manually"
+                    onClick={() =>
+                        setForm((prev: any) => ({
+                            ...prev,
+                            insuranceInputMethod: "manual",
+                        }))
+                    }
+                />
+            </div>
+        </SectionShell>
+    );
+}
+
+
+function InsuranceTypeSection({
+    form,
+    setForm,
+}: any) {
+    if (form.insuranceStatus !== "yes") return null;
+
+    const OPTIONS = [
+        { value: "private", label: "Private" },
+        { value: "medicaid", label: "Medicaid / state plan" },
+        { value: "medicare", label: "Medicare" },
+        { value: "va", label: "VA / Tricare" },
+        { value: "not_sure", label: "Not sure" },
+    ];
+
+    return (
+        <SectionShell
+            title="What type of insurance?"
+            body=""
+        >
+            <div className="flex flex-wrap gap-2">
+                {OPTIONS.map((option) => (
+                    <ChoicePill
+                        key={option.value}
+                        active={form.insuranceType === option.value}
+                        label={option.label}
+                        onClick={() =>
+                            setForm((prev: any) => ({
+                                ...prev,
+                                insuranceType: option.value,
+                            }))
+                        }
+                    />
+                ))}
+            </div>
+        </SectionShell>
     );
 }

@@ -57,7 +57,10 @@ export type PatientMatchingInput = {
   requiresMAT?: boolean
   insuranceCarrier?: InsuranceCarrier
   fundingType?: FundingType
+  city?: string
   state?: string
+  latitude?: number
+  longitude?: number
   wantsProfessionalProgram?: boolean
   wantsFamilyProgram?: boolean
   lifeFitProfile?: LifeFitProfile
@@ -70,6 +73,8 @@ export type FacilityMatchingInput = {
   state?: string
   website?: string
   city?: string
+  latitude?: number
+  longitude?: number
   matcherSummary?: string
 
   detectedLevelsOfCare: LevelOfCare[]

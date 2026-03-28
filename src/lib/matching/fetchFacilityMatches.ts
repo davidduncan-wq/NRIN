@@ -28,12 +28,18 @@ type FacilityIntelligenceRow = {
               name: string | null
               website: string | null
               city: string | null
+              state: string | null
+              latitude: number | null
+              longitude: number | null
           }
         | {
               id: string
               name: string | null
               website: string | null
               city: string | null
+              state: string | null
+              latitude: number | null
+              longitude: number | null
           }[]
         | null
 }
@@ -69,8 +75,11 @@ function mapRowToFacility(
             "Unknown Facility",
         website: facilitySite?.website ?? undefined,
         city: facilitySite?.city ?? undefined,
+        state: facilitySite?.state ?? undefined,
+        latitude: facilitySite?.latitude ?? undefined,
+        longitude: facilitySite?.longitude ?? undefined,
         matcherSummary: row.matcher_summary ?? undefined,
-        state: undefined,
+        
         detectedLevelsOfCare,
         hasDualDiagnosisSignal: row.dual_diagnosis_support ?? false,
         hasMATSignal: row.mat_supported ?? false,
@@ -83,12 +92,19 @@ function mapRowToFacility(
     }
 }
 
-export async function fetchFacilityMatchingInputs(): Promise<
-    FacilityMatchingInput[]
-> {
-    const { data, error } = await supabase
-        .from("facility_intelligence")
-        .select(`
+export async function fetchFacilityMatchingInputs(options?: {
+    insuranceCarrier?: InsuranceCarrier
+}): Promise<FacilityMatchingInput[]> {
+    const pageSize = 250
+    let from = 0
+    let allRows: FacilityIntelligenceRow[] = []
+
+    while (true) {
+        const to = from + pageSize - 1
+
+        let query = supabase
+            .from("facility_intelligence")
+            .select(`
           facility_site_id,
           offers_detox,
           offers_residential,
@@ -109,19 +125,41 @@ export async function fetchFacilityMatchingInputs(): Promise<
             id,
             name,
             website,
-            city
+            city,
+            state,
+            latitude,
+            longitude
           )
         `)
-        .order("confidence_score", { ascending: false, nullsFirst: false })
-        .limit(200)
 
-    if (error) {
-        console.error("Error fetching facility_intelligence:", error)
-        return []
+        if (
+            options?.insuranceCarrier &&
+            options.insuranceCarrier !== "self_pay" &&
+            options.insuranceCarrier !== "unknown"
+        ) {
+            query = query.contains(
+                "accepted_insurance_providers_detected",
+                [options.insuranceCarrier],
+            )
+        }
+
+        const { data, error } = await query.range(from, to)
+
+        if (error) {
+            console.error("Error fetching facility_intelligence:", error)
+            return []
+        }
+
+        const batch = (data ?? []) as FacilityIntelligenceRow[]
+        allRows = allRows.concat(batch)
+
+        if (batch.length < pageSize) break
+
+        from += pageSize
     }
 
-    const mapped = (data ?? [])
-        .map((row) => mapRowToFacility(row as FacilityIntelligenceRow))
+    const mapped = allRows
+        .map((row) => mapRowToFacility(row))
         .filter((row): row is FacilityMatchingInput => Boolean(row))
 
     console.log("FACILITY COUNT:", mapped.length)
