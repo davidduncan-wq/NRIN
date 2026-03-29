@@ -59,6 +59,7 @@ export function matchPatientToFacilities(
                     confidence,
                 },
                 explanation,
+                recommendedProgramType: patient.desiredLevelsOfCare[0] ?? null,
             }
         })
         .filter((match) => match.hardFilterPassed)
@@ -74,11 +75,12 @@ export function matchPatientToFacilities(
 
     const diversified: FacilityMatchResult[] = []
     const usedCities = new Set<string>()
+    const targetCount = 50
 
     for (const match of deduped) {
         const cityKey = (match.city ?? "").trim().toLowerCase()
 
-        if (diversified.length < 3) {
+        if (diversified.length < 10) {
             if (cityKey && usedCities.has(cityKey)) continue
             diversified.push(match)
             if (cityKey) usedCities.add(cityKey)
@@ -87,10 +89,10 @@ export function matchPatientToFacilities(
 
         diversified.push(match)
 
-        if (diversified.length === 5) break
+        if (diversified.length === targetCount) break
     }
 
     return {
-        matches: diversified.length > 0 ? diversified : deduped.slice(0, 5),
+        matches: diversified.length > 0 ? diversified : deduped.slice(0, targetCount),
     }
 }

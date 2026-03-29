@@ -84,6 +84,7 @@ export type FacilityMatchingInput = {
   hasFamilyProgramSignal?: boolean
 
   acceptedInsurance: InsuranceCarrier[]
+  acceptsPrivateInsurance?: boolean
   evidenceConfidence?: number
   rawProgramEvidence?: any[]
   rawInsuranceEvidence?: any[]
@@ -100,6 +101,8 @@ export type ProgramScoreBreakdown = {
   levelMatchScore: number
   detoxScore: number
   dualDiagnosisScore: number
+  capabilityScore: number
+  confidenceBonus: number
   totalScore: number
 }
 
@@ -154,6 +157,7 @@ export type FacilityMatchResult = {
   }
 
   explanation: MatchExplanation
+    recommendedProgramType: string | null
 }
 
 export type MatchFacilitiesResult = {

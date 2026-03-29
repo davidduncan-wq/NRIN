@@ -35,3 +35,4 @@ Until those are clearer, crawler v2 risks optimizing the wrong things.
 Crawler v2 is not a rewrite because v1 failed.
 Crawler v2 is an evolution because v1 succeeded and exposed the next-order truths.
 
+Crawler 1.0 should seed objective environment classification from existing facility location data; crawler 2.0 should enrich subjective/marketing setting signals and harder facility attributes after the environment ontology is defined.

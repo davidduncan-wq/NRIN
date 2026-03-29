@@ -1,39 +1,65 @@
 import { collectEvidenceSnippets } from "./detectSignals"
 import { CrawlPageResult, InsuranceDetection } from "./types"
+import { INSURANCE_CARRIER_UNIVERSE } from "./config/insuranceCarrierUniverse"
 
-const INSURANCE_PATTERNS: Record<string, RegExp[]> = {
-  aetna: [/\baetna\b/i],
-  cigna: [/\bcigna\b/i],
-  blue_cross_blue_shield: [/\bblue\s*cross\b/i, /\bblue\s*shield\b/i, /\bbcbs\b/i],
-  united_healthcare: [/\bunited\s*healthcare\b/i, /\buhc\b/i],
-  humana: [/\bhumana\b/i],
-  medicare: [/\bmedicare\b/i],
-  medicaid: [/\bmedicaid\b/i],
-  tricare: [/\btricare\b/i],
-  anthem: [/\banthem\b/i],
-  ambetter: [/\bambetter\b/i],
-  molina: [/\bmolina\b/i],
-  beacon: [/\bbeacon\b/i],
-}
+const NEGATION_PATTERNS = [
+  /\bdo not accept\b/i,
+  /\bdoes not accept\b/i,
+  /\bdon't accept\b/i,
+  /\bdoesn't accept\b/i,
+  /\bnot accepted\b/i,
+  /\bnot currently accepted\b/i,
+  /\bwe do not take\b/i,
+  /\bwe don't take\b/i,
+  /\bdoes not take\b/i,
+  /\bdoesn't take\b/i,
+  /\bnot in network\b/i,
+  /\bout of network\b/i,
+  /\bnot contracted with\b/i,
+  /\bunable to accept\b/i,
+  /\bno longer accept\b/i,
+  /\bexcluded\b/i,
+  /\bnot covered\b/i,
+  /\bnot covered by\b/i,
+]
+
+const QUESTION_PATTERNS = [
+  /^\s*does .* accept .* coverage\??\s*$/i,
+  /^\s*does .* accept .* insurance\??\s*$/i,
+  /^\s*do .* accept .* coverage\??\s*$/i,
+  /^\s*do .* accept .* insurance\??\s*$/i,
+]
 
 export function parseInsurance(pages: CrawlPageResult[]): InsuranceDetection[] {
   const results: InsuranceDetection[] = []
 
-  for (const [normalizedName, patterns] of Object.entries(INSURANCE_PATTERNS)) {
+  for (const carrier of INSURANCE_CARRIER_UNIVERSE) {
     const evidence = pages.flatMap((page) =>
-      collectEvidenceSnippets(page.url, page.rawText, patterns, `insurance:${normalizedName}`)
+      collectEvidenceSnippets(page.url, page.rawText, carrier.patterns, `insurance:${carrier.key}`),
     )
 
-    if (evidence.length === 0) continue
+    const filteredEvidence = evidence.filter(
+      (item) => !looksNegated(item.snippet) && !looksLikeQuestion(item.snippet),
+    )
 
-    const rawMentions = [...new Set(evidence.map((item) => item.snippet))]
+    if (filteredEvidence.length === 0) continue
+
+    const rawMentions = [...new Set(filteredEvidence.map((item) => item.snippet))]
 
     results.push({
-      normalizedName,
+      normalizedName: carrier.key,
       rawMentions,
-      evidence,
+      evidence: filteredEvidence,
     })
   }
 
   return results
+}
+
+function looksNegated(snippet: string): boolean {
+  return NEGATION_PATTERNS.some((pattern) => pattern.test(snippet))
+}
+
+function looksLikeQuestion(snippet: string): boolean {
+  return QUESTION_PATTERNS.some((pattern) => pattern.test(snippet.trim()))
 }

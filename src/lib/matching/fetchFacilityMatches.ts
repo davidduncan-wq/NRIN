@@ -18,6 +18,7 @@ type FacilityIntelligenceRow = {
     family_therapy_program: boolean | null
     professional_program: boolean | null
     accepted_insurance_providers_detected: string[] | null
+    accepts_private_insurance_detected: boolean | null
     matcher_summary: string | null
     detected_program_types: any[] | null
     detected_insurance_carriers: any[] | null
@@ -42,6 +43,57 @@ type FacilityIntelligenceRow = {
               longitude: number | null
           }[]
         | null
+}
+
+
+function normalizeWebsiteKey(website?: string) {
+    const value = (website ?? "").trim().toLowerCase()
+    if (!value) return ""
+
+    try {
+        const url = new URL(value.startsWith("http") ? value : `https://${value}`)
+        return url.hostname.replace(/^www\./, "")
+    } catch {
+        return value
+            .replace(/^https?:\/\//, "")
+            .replace(/^www\./, "")
+            .replace(/\/$/, "")
+    }
+}
+
+function buildDedupeKey(facility: FacilityMatchingInput) {
+    const websiteKey = normalizeWebsiteKey(facility.website)
+    const cityKey = (facility.city ?? "").trim().toLowerCase()
+    const stateKey = (facility.state ?? "").trim().toLowerCase()
+
+    if (websiteKey) {
+        return `${websiteKey}::${cityKey}::${stateKey}`
+    }
+
+    return `${(facility.facilityName ?? "").trim().toLowerCase()}::${cityKey}::${stateKey}`
+}
+
+function choosePreferredFacility(
+    current: FacilityMatchingInput,
+    challenger: FacilityMatchingInput,
+) {
+    const currentScore =
+        (current.evidenceConfidence ?? 0) +
+        current.detectedLevelsOfCare.length +
+        (current.hasMATSignal ? 1 : 0) +
+        (current.hasFamilyProgramSignal ? 1 : 0) +
+        (current.hasDualDiagnosisSignal ? 1 : 0) +
+        (current.acceptsPrivateInsurance ? 1 : 0)
+
+    const challengerScore =
+        (challenger.evidenceConfidence ?? 0) +
+        challenger.detectedLevelsOfCare.length +
+        (challenger.hasMATSignal ? 1 : 0) +
+        (challenger.hasFamilyProgramSignal ? 1 : 0) +
+        (challenger.hasDualDiagnosisSignal ? 1 : 0) +
+        (challenger.acceptsPrivateInsurance ? 1 : 0)
+
+    return challengerScore > currentScore ? challenger : current
 }
 
 function mapRowToFacility(
@@ -86,6 +138,7 @@ function mapRowToFacility(
         hasProfessionalProgramSignal: row.professional_program ?? false,
         hasFamilyProgramSignal: row.family_therapy_program ?? false,
         acceptedInsurance,
+        acceptsPrivateInsurance: row.accepts_private_insurance_detected ?? false,
         evidenceConfidence: row.confidence_score ?? 0,
         rawProgramEvidence: row.detected_program_types ?? [],
         rawInsuranceEvidence: row.detected_insurance_carriers ?? [],
@@ -94,6 +147,8 @@ function mapRowToFacility(
 
 export async function fetchFacilityMatchingInputs(options?: {
     insuranceCarrier?: InsuranceCarrier
+    insuranceType?: string
+    selfPayOnly?: boolean
 }): Promise<FacilityMatchingInput[]> {
     const pageSize = 250
     let from = 0
@@ -117,6 +172,7 @@ export async function fetchFacilityMatchingInputs(options?: {
           family_therapy_program,
           professional_program,
           accepted_insurance_providers_detected,
+          accepts_private_insurance_detected,
           matcher_summary,
           detected_program_types,
           detected_insurance_carriers,
@@ -143,6 +199,12 @@ export async function fetchFacilityMatchingInputs(options?: {
             )
         }
 
+        if (options?.insuranceType === "private") {
+            query = query.eq("accepts_private_insurance_detected", true)
+        }
+
+        // selfPayOnly = true means UNLOCK insurance constraints (no DB filter)
+
         const { data, error } = await query.range(from, to)
 
         if (error) {
@@ -162,7 +224,23 @@ export async function fetchFacilityMatchingInputs(options?: {
         .map((row) => mapRowToFacility(row))
         .filter((row): row is FacilityMatchingInput => Boolean(row))
 
-    console.log("FACILITY COUNT:", mapped.length)
+    const dedupedMap = new Map<string, FacilityMatchingInput>()
 
-    return mapped
+    for (const facility of mapped) {
+        const key = buildDedupeKey(facility)
+        const existing = dedupedMap.get(key)
+
+        if (!existing) {
+            dedupedMap.set(key, facility)
+            continue
+        }
+
+        dedupedMap.set(key, choosePreferredFacility(existing, facility))
+    }
+
+    const deduped = Array.from(dedupedMap.values())
+
+    console.log("FACILITY COUNT:", deduped.length)
+
+    return deduped
 }

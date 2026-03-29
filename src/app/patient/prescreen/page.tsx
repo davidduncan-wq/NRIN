@@ -65,6 +65,7 @@ export default function PreScreenPage() {
     const patientId = searchParams.get("patientId") || "";
     const caseId = searchParams.get("caseId") || "";
     const matchScore = searchParams.get("matchScore") || "";
+    const recommendedProgramType = searchParams.get("recommendedProgramType") || null
 
     const intakeInsuranceStatus = searchParams.get("insuranceStatus") || "";
     const intakeInsuranceType = searchParams.get("insuranceType") || "";
@@ -170,12 +171,33 @@ export default function PreScreenPage() {
 
             const prescreenNotes = noteParts.length > 0 ? noteParts.join(" | ") : null;
 
+            const patientMatchSnapshot = {
+                needsDetox: recommendedProgramType === "detox",
+                desiredLevelsOfCare: recommendedProgramType
+                    ? [recommendedProgramType]
+                    : [],
+                prefersDualDiagnosis: false,
+                requiresMAT: false,
+                insuranceCarrier: normalizedCarrier || "unknown",
+                fundingType:
+                    form.paymentPath === "insurance"
+                        ? "insurance"
+                        : form.paymentPath === "self_pay"
+                        ? "self_pay"
+                        : "indigent",
+                state: undefined,
+                wantsProfessionalProgram: false,
+                wantsFamilyProgram: false,
+            };
+
             const { error: caseError } = await supabase
                 .from("cases")
                 .update({
                     match_score: matchScore ? Number(matchScore) : null,
                     state: "MATCH_SELECTED",
                     notes: prescreenNotes,
+                    patient_match_snapshot: patientMatchSnapshot,
+
                 })
                 .eq("id", caseId);
 

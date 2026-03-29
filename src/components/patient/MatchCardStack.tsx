@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import MatchDetailSheet from "@/components/patient/MatchDetailSheet"
+import PatientRefinementPanel, {
+    type PatientRefinementValues,
+} from "@/components/patient/PatientRefinementPanel"
 import { SignalPill } from "@/components/ui/SignalPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { MatchViewModel } from "@/lib/matching/buildMatchViewModel"
@@ -24,6 +27,7 @@ export default function MatchCardStack({
     showPrimaryAction?: boolean
 }) {
     const [open, setOpen] = useState(false)
+    const [refinementOpen, setRefinementOpen] = useState(false)
     const [signalsVisible, setSignalsVisible] = useState(false)
     const [currentIndex, setCurrentIndex] = useState(0)
     const router = useRouter()
@@ -88,12 +92,71 @@ export default function MatchCardStack({
         params.set("facilityId", current.id)
         params.set("facilityName", current.presentation.title)
         params.set("matchScore", String(current.score ?? 0))
+        if (current.recommendedProgramType) {
+            params.set("recommendedProgramType", current.recommendedProgramType)
+        }
+
 
         if (current.presentation.location) {
             params.set("facilityLocation", current.presentation.location)
         }
 
         router.push(`/patient/prescreen?${params.toString()}`)
+    }
+
+
+    function handleApplyRefinement(values: PatientRefinementValues) {
+        const params = new URLSearchParams(searchParams.toString())
+
+        params.set("refineGeo", values.refineGeo)
+
+        if (values.refineLevels.length > 0) {
+            params.set("refineLevels", values.refineLevels.join(","))
+        } else {
+            params.delete("refineLevels")
+        }
+
+        if (values.refineFamily) {
+            params.set("refineFamily", "1")
+        } else {
+            params.delete("refineFamily")
+        }
+
+        if (values.refineProfessional) {
+            params.set("refineProfessional", "1")
+        } else {
+            params.delete("refineProfessional")
+        }
+
+        if (values.refineMAT) {
+            params.set("refineMAT", "1")
+        } else {
+            params.delete("refineMAT")
+        }
+
+        params.set("refineReason", values.refineReason)
+
+        setRefinementOpen(false)
+        setOpen(false)
+
+        router.push(`/patient/matches?${params.toString()}`)
+    }
+
+    const refinementInitialValues: Partial<PatientRefinementValues> = {
+        refineGeo: searchParams.get("refineGeo") === "open" ? "open" : "close",
+        refineLevels: (searchParams.get("refineLevels") ?? "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean),
+        refineFamily: searchParams.get("refineFamily") === "1",
+        refineProfessional: searchParams.get("refineProfessional") === "1",
+        refineMAT: searchParams.get("refineMAT") === "1",
+        refineReason:
+            searchParams.get("refineReason") === "wrong_program" ||
+            searchParams.get("refineReason") === "doesnt_fit" ||
+            searchParams.get("refineReason") === "other"
+                ? (searchParams.get("refineReason") as PatientRefinementValues["refineReason"])
+                : "too_far",
     }
 
     const canGoPrev = currentIndex > 0
@@ -199,12 +262,28 @@ export default function MatchCardStack({
 
                     <div className="mt-10 border-t border-stone-200/90 pt-6 sm:mt-12 sm:pt-7">
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                            <button
-                                onClick={() => setOpen((prev) => !prev)}
-                                className="text-left text-sm font-medium text-stone-700 transition hover:text-stone-900"
-                            >
-                                {open ? "Hide details" : "See why we recommended this"}
-                            </button>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+                                <button
+                                    onClick={() => {
+                                        setRefinementOpen(false)
+                                        setOpen((prev) => !prev)
+                                    }}
+                                    className="text-left text-sm font-medium text-stone-700 transition hover:text-stone-900"
+                                >
+                                    {open ? "Hide details" : "See why we recommended this"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setOpen(false)
+                                        setRefinementOpen((prev) => !prev)
+                                    }}
+                                    className="text-left text-sm font-medium text-stone-600 transition hover:text-stone-900"
+                                >
+                                    {refinementOpen ? "Hide refinement" : "Show me better options"}
+                                </button>
+                            </div>
 
                             {showPrimaryAction && (
                                 <button
@@ -218,6 +297,13 @@ export default function MatchCardStack({
                     </div>
                 </div>
             </SurfaceCard>
+
+            <PatientRefinementPanel
+                open={refinementOpen}
+                onClose={() => setRefinementOpen(false)}
+                onApply={handleApplyRefinement}
+                initialValues={refinementInitialValues}
+            />
 
             <MatchDetailSheet
                 open={open}

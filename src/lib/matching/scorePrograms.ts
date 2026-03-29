@@ -46,7 +46,52 @@ export function scorePrograms(
   const dualDiagnosisScore =
     patient.prefersDualDiagnosis && facility.hasDualDiagnosisSignal ? 5 : 0
 
-  const totalScore = levelMatchScore + detoxScore + dualDiagnosisScore
+  const hasFullContinuum =
+    facilityLevels.has("detox") &&
+    facilityLevels.has("residential") &&
+    facilityLevels.has("php") &&
+    facilityLevels.has("iop") &&
+    facilityLevels.has("outpatient")
+
+  const hasTierOnePlusSupports =
+    !!facility.hasMATSignal &&
+    !!facility.hasFamilyProgramSignal &&
+    !!facility.hasDualDiagnosisSignal
+
+  let capabilityScore = 0
+
+  if (hasFullContinuum) {
+    capabilityScore += 12
+  }
+
+  if (hasTierOnePlusSupports) {
+    capabilityScore += 6
+  }
+
+  if (facility.hasMATSignal) {
+    capabilityScore += 2
+  }
+
+  if (facility.hasFamilyProgramSignal) {
+    capabilityScore += 2
+  }
+
+  if (facility.hasDualDiagnosisSignal) {
+    capabilityScore += 2
+  }
+
+  if (facility.hasProfessionalProgramSignal) {
+    capabilityScore += 2
+  }
+
+  const confidenceBonus = Math.round((facility.evidenceConfidence ?? 0) / 20)
+
+  const totalScore =
+    levelMatchScore +
+    detoxScore +
+    dualDiagnosisScore +
+    capabilityScore +
+    confidenceBonus
 
   return {
     hardFilter,
@@ -56,6 +101,8 @@ export function scorePrograms(
       levelMatchScore,
       detoxScore,
       dualDiagnosisScore,
+      capabilityScore,
+      confidenceBonus,
       totalScore: hardFilter.passed ? totalScore : 0,
     },
   }

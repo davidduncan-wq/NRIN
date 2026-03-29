@@ -63,7 +63,7 @@ function deriveRelapseRisk(input: IntakeInput) {
   return "low";
 }
 
-function deriveCoOccurringNeed(input: IntakeInput) {
+function deriveMentalHealthSignal(input: IntakeInput) {
   if (input.mhHospitalization === "yes") return "likely";
   if (input.mhMeds === "yes") return "possible";
   return "none";
@@ -75,10 +75,10 @@ function deriveSupportLevel(input: IntakeInput) {
   return "high";
 }
 
-function deriveLevelOfCare(
+function deriveRecommendedProgramType(
   withdrawalRisk: string,
   relapseRisk: string,
-  coOccurring: string,
+  mentalHealthSignal: string,
   supportLevel: string,
   housingStable: string
 ) {
@@ -95,7 +95,7 @@ function deriveLevelOfCare(
   if (
     relapseRisk === "medium" ||
     supportLevel === "medium" ||
-    coOccurring === "likely"
+    mentalHealthSignal === "likely"
   ) {
     return "php";
   }
@@ -116,13 +116,13 @@ export async function POST(req: NextRequest) {
 
   const withdrawalRisk = deriveWithdrawalRisk(body);
   const relapseRisk = deriveRelapseRisk(body);
-  const coOccurring = deriveCoOccurringNeed(body);
+  const mentalHealthSignal = deriveMentalHealthSignal(body);
   const supportLevel = deriveSupportLevel(body);
 
-  const recommendedLevelOfCare = deriveLevelOfCare(
+  const recommendedProgramType = deriveRecommendedProgramType(
     withdrawalRisk,
     relapseRisk,
-    coOccurring,
+    mentalHealthSignal,
     supportLevel,
     body.housingStable
   );
@@ -130,8 +130,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     withdrawalRisk,
     relapseRisk,
-    coOccurring,
+    mentalHealthSignal,
     supportLevel,
-    recommendedLevelOfCare,
+    recommendedProgramType,
+    recommendationBasis: "Based on what you shared",
   });
 }

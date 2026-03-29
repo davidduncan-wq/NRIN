@@ -165,6 +165,15 @@ export function buildMatchExplanation(
         })
     }
 
+    if (lifeFit?.preferences?.preferredEnvironment) {
+        reasons.push({
+            label: `Fits your preferred environment`,
+            snippet: `You indicated a preference for ${lifeFit.preferences.preferredEnvironment.replace("_", " ")}`,
+            sourceUrl: "#life-fit",
+            sourceLabel: "Life fit",
+        })
+    }
+
     if (wantsFamilyProgram && facility.hasFamilyProgramSignal) {
         reasons.push({
             label: "Family support available",

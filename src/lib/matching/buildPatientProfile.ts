@@ -202,51 +202,89 @@ export function buildPatientFromSearchParams(
     ["iop"],
   )
 
+  const refineLevels = parseLevels(
+    searchParams.refineLevels,
+    desiredLevelsOfCare,
+  )
+
+  const refineGeo =
+    typeof searchParams.refineGeo === "string"
+      ? searchParams.refineGeo
+      : undefined
+
   const environmentPreference =
     typeof searchParams.environmentPreference === "string" &&
     searchParams.environmentPreference.trim() !== ""
       ? searchParams.environmentPreference
       : undefined
 
+  const insuranceCarrier =
+    typeof searchParams.insuranceCarrier === "string" &&
+    searchParams.insuranceCarrier.trim() !== ""
+      ? parseInsuranceCarrier(searchParams.insuranceCarrier)
+      : undefined
+
+  const city =
+    typeof searchParams.city === "string" && searchParams.city.trim() !== ""
+      ? searchParams.city
+      : undefined
+
+  const state =
+    typeof searchParams.state === "string" && searchParams.state.trim() !== ""
+      ? searchParams.state
+      : undefined
+
+  const latitude =
+    typeof searchParams.latitude === "string"
+      ? Number(searchParams.latitude)
+      : undefined
+
+  const longitude =
+    typeof searchParams.longitude === "string"
+      ? Number(searchParams.longitude)
+      : undefined
+
+  const closeToHome = refineGeo !== "open"
+
   return {
-    needsDetox: parseBoolean(searchParams.needsDetox, false),
-    desiredLevelsOfCare,
+    needsDetox: refineLevels.includes("detox"),
+    desiredLevelsOfCare: refineLevels,
     prefersDualDiagnosis: parseBoolean(searchParams.prefersDualDiagnosis, false),
-    requiresMAT: parseBoolean(searchParams.requiresMAT, false),
-    insuranceCarrier: parseInsuranceCarrier(searchParams.insuranceCarrier),
+    requiresMAT: parseBoolean(
+      searchParams.refineMAT,
+      parseBoolean(searchParams.requiresMAT, false),
+    ),
+    insuranceCarrier,
     fundingType: deriveFundingTypeFromSearchParams(searchParams),
     wantsProfessionalProgram: parseBoolean(
-      searchParams.wantsProfessionalProgram,
-      false,
+      searchParams.refineProfessional,
+      parseBoolean(searchParams.wantsProfessionalProgram, false),
     ),
     wantsFamilyProgram: parseBoolean(
-      searchParams.wantsFamilyProgram,
-      false,
+      searchParams.refineFamily,
+      parseBoolean(searchParams.wantsFamilyProgram, false),
     ),
-    city:
-      typeof searchParams.city === "string" && searchParams.city.trim() !== ""
-        ? searchParams.city
+    city: closeToHome ? city : undefined,
+    state: closeToHome ? state : undefined,
+    latitude: closeToHome ? latitude : undefined,
+    longitude: closeToHome ? longitude : undefined,
+    lifeFitProfile:
+      environmentPreference || refineGeo === "close"
+        ? {
+            captureMode: "full",
+            constraints: {
+              ...(refineGeo === "close"
+                ? { needsToStayNearFamily: true }
+                : {}),
+            },
+            preferences: {
+              ...(environmentPreference
+                ? { preferredEnvironment: environmentPreference }
+                : {}),
+            },
+            signals: {},
+            narrativeSummary: "",
+          }
         : undefined,
-    state:
-      typeof searchParams.state === "string" && searchParams.state.trim() !== ""
-        ? searchParams.state
-        : undefined,
-    latitude:
-      typeof searchParams.latitude === "string"
-        ? Number(searchParams.latitude)
-        : undefined,
-    longitude:
-      typeof searchParams.longitude === "string"
-        ? Number(searchParams.longitude)
-        : undefined,
-    lifeFitProfile: environmentPreference
-      ? {
-          captureMode: "full",
-          constraints: {},
-          preferences: { preferredEnvironment: environmentPreference },
-          signals: {},
-          narrativeSummary: "",
-        }
-      : undefined,
   }
 }

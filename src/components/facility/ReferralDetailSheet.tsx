@@ -15,6 +15,8 @@ type Referral = {
     facility_site_id: string | null;
     notes: string | null;
     acuity_level: string | null;
+    recommended_facility_site_id: string | null;
+    recommendation_reason: string | null;
 };
 
 type Patient = {
@@ -28,20 +30,36 @@ type Patient = {
 type ReferralDetailSheetProps = {
     referral: Referral;
     patient: Patient | null;
-    facilitySites: { id: string; name: string }[];   // ← ADD THIS
+    facilitySites: {
+        id: string;
+        name: string;
+        city: string | null;
+        postal_code: string | null;
+        programs_offered: string | null;
+        accepts_private_insurance: boolean | null;
+        accepts_medicaid: boolean | null;
+        accepts_self_pay: boolean | null;
+        insurance_notes: string | null;
+    }[];
     isUpdatingStatus: boolean;
     notesSaving: boolean;
     onChangeStatus: (nextStatus: string) => void;
     onSaveNotes: (nextNotes: string) => void;
     onChangeAcuity: (nextLevel: string) => void;
-    onChangeFacility: (siteId: string | null) => void; // ← ADD THIS
+    onChangeFacility: (siteId: string | null) => void;
+    onRecommendElsewhere: (siteId: string, reason: string) => void;
+    onReturnToNrin: (reason: string) => void;
 };
 
 const STATUS_FLOW = [
     "new",
     "in_review",
+    "awaiting_info",
+    "internal_review",
     "accepted",
-    "declined",
+    "returned_to_nrin",
+    "recommended_elsewhere",
+    "expired",
     "closed",
 ] as const;
 
@@ -83,10 +101,18 @@ const statusLabel = (status: string) => {
             return "New";
         case "in_review":
             return "In Review";
+        case "awaiting_info":
+            return "Awaiting Info";
+        case "internal_review":
+            return "Internal Review";
         case "accepted":
             return "Accepted";
-        case "declined":
-            return "Declined";
+        case "returned_to_nrin":
+            return "Return to NRIN";
+        case "recommended_elsewhere":
+            return "Recommend Elsewhere";
+        case "expired":
+            return "Expired";
         case "closed":
             return "Closed";
         default:
@@ -102,10 +128,18 @@ const statusBadgeClasses = (status: string) => {
             return `${base} border-blue-200 bg-blue-50 text-blue-700`;
         case "in_review":
             return `${base} border-amber-200 bg-amber-50 text-amber-700`;
+        case "awaiting_info":
+            return `${base} border-orange-200 bg-orange-50 text-orange-700`;
+        case "internal_review":
+            return `${base} border-violet-200 bg-violet-50 text-violet-700`;
         case "accepted":
             return `${base} border-emerald-200 bg-emerald-50 text-emerald-700`;
-        case "declined":
+        case "returned_to_nrin":
             return `${base} border-rose-200 bg-rose-50 text-rose-700`;
+        case "expired":
+            return `${base} border-slate-300 bg-slate-100 text-slate-600`;
+        case "recommended_elsewhere":
+            return `${base} border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700`;
         case "closed":
             return `${base} border-slate-200 bg-slate-50 text-slate-600`;
         default:
@@ -113,25 +147,91 @@ const statusBadgeClasses = (status: string) => {
     }
 };
 
+
+// === NRIN SIGNAL ENGINE (v1) ===
+
+function hasProgram(facility: any, keyword: string) {
+    if (!facility?.programs_offered) return false;
+    const text = JSON.stringify(facility.programs_offered).toLowerCase();
+    return text.includes(keyword);
+}
+
+function signalLevelOfCare(facility: any) {
+    return hasProgram(facility, "residential") || hasProgram(facility, "inpatient");
+}
+
+function signalDetox(facility: any) {
+    return hasProgram(facility, "detox");
+}
+
+function signalInsurance(facility: any) {
+    return (
+        facility?.accepts_private_insurance ||
+        facility?.accepts_medicaid ||
+        facility?.accepts_self_pay
+    );
+}
+
 export default function ReferralDetailSheet({
     referral,
     patient,
-    facilitySites,         // ← added
+    facilitySites,
     isUpdatingStatus,
     notesSaving,
     onChangeStatus,
     onSaveNotes,
     onChangeAcuity,
-    onChangeFacility,       // ← added
+    onChangeFacility,
+    onRecommendElsewhere,
+    onReturnToNrin,
 }: ReferralDetailSheetProps) {
 
     const [acuityDraft, setAcuityDraft] = React.useState(referral.acuity_level ?? "");
     const [notesDraft, setNotesDraft] = React.useState(referral.notes ?? "");
+    const [recommendedFacilityDraft, setRecommendedFacilityDraft] = React.useState(
+        referral.recommended_facility_site_id ?? ""
+    );
+    const [recommendationReasonDraft, setRecommendationReasonDraft] = React.useState(
+        referral.recommendation_reason ?? ""
+    );
+    const [activeWorkflowAction, setActiveWorkflowAction] = React.useState<
+        "recommended_elsewhere" | "returned_to_nrin" | null
+    >(null);
+    const [recommendMode, setRecommendMode] = React.useState<"nrin" | "manual">("nrin");
+    const [facilitySearchDraft, setFacilitySearchDraft] = React.useState("");
 
-    // Keep local notes in sync if referral changes
     React.useEffect(() => {
         setNotesDraft(referral.notes ?? "");
     }, [referral.id, referral.notes]);
+
+    React.useEffect(() => {
+        setRecommendedFacilityDraft(referral.recommended_facility_site_id ?? "");
+    }, [referral.id, referral.recommended_facility_site_id]);
+
+    React.useEffect(() => {
+        setRecommendationReasonDraft(referral.recommendation_reason ?? "");
+    }, [referral.id, referral.recommendation_reason]);
+
+    const filteredFacilityResults =
+        recommendMode !== "manual"
+            ? []
+            : facilitySites
+                .filter((s) => s.id !== referral.facility_site_id)
+                .filter((s) => {
+                    const q = facilitySearchDraft.trim().toLowerCase();
+                    if (!q) return true;
+
+                    const haystack = [
+                        s.name ?? "",
+                        s.city ?? "",
+                        s.postal_code ?? "",
+                    ]
+                        .join(" ")
+                        .toLowerCase();
+
+                    return haystack.includes(q);
+                })
+                .slice(0, 8);
 
     return (
         <div className="mx-auto flex max-w-5xl flex-col gap-6 px-0 py-2 lg:flex-row lg:py-4">
@@ -303,7 +403,20 @@ export default function ReferralDetailSheet({
                                     type="button"
                                     selected={isCurrent}
                                     disabled={isUpdatingStatus || isCurrent}
-                                    onClick={() => onChangeStatus(status)}
+                                    onClick={() => {
+                                        if (status === "recommended_elsewhere") {
+                                            setActiveWorkflowAction("recommended_elsewhere");
+                                            return;
+                                        }
+
+                                        if (status === "returned_to_nrin") {
+                                            setActiveWorkflowAction("returned_to_nrin");
+                                            return;
+                                        }
+
+                                        setActiveWorkflowAction(null);
+                                        onChangeStatus(status);
+                                    }}
                                 >
                                     <span>{statusLabel(status)}</span>
                                 </ChoiceButton>
@@ -315,6 +428,144 @@ export default function ReferralDetailSheet({
                         <p className="mt-2 text-xs text-slate-500">Updating status…</p>
                     )}
                 </div>
+
+                {(activeWorkflowAction === "recommended_elsewhere" ||
+                    referral.status === "recommended_elsewhere") && (
+                    <div className="rounded-2xl border border-fuchsia-200 bg-white p-6 shadow-sm ring-1 ring-fuchsia-100">
+                        <h2 className="text-sm font-semibold text-slate-900">
+                            Recommend another facility
+                        </h2>
+                    <p className="mt-2 text-xs text-slate-500">
+                        Use this when the patient is not the right fit here and should be passed to a better-fit facility.
+                    </p>
+
+                    <div className="mt-4 grid grid-cols-1 gap-2">
+                        <ChoiceButton
+                            type="button"
+                            selected={recommendMode === "nrin"}
+                            onClick={() => setRecommendMode("nrin")}
+                        >
+                            <span>Let nrin find the next best fit</span>
+                        </ChoiceButton>
+
+                        <ChoiceButton
+                            type="button"
+                            selected={recommendMode === "manual"}
+                            onClick={() => setRecommendMode("manual")}
+                        >
+                            <span>Choose a facility manually</span>
+                        </ChoiceButton>
+                    </div>
+
+                    <div className="mt-4">
+                        <textarea
+                            value={recommendationReasonDraft}
+                            onChange={(e) => setRecommendationReasonDraft(e.target.value)}
+                            placeholder="Why is this the right move?"
+                            className="min-h-[110px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                        />
+                    </div>
+
+                    {recommendMode === "manual" && (
+                        <div className="mt-4 space-y-3">
+                            <input
+                                type="text"
+                                value={facilitySearchDraft}
+                                onChange={(e) => setFacilitySearchDraft(e.target.value)}
+                                placeholder="Search by facility, city, or state"
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                            />
+
+                            <div className="space-y-2">
+                                {filteredFacilityResults.length > 0 ? (
+                                    filteredFacilityResults.map((s) => {
+                                        const isSelected = recommendedFacilityDraft === s.id;
+
+                                        return (
+                                            <button
+                                                key={s.id}
+                                                type="button"
+                                                onClick={() => setRecommendedFacilityDraft(s.id)}
+                                                className={`w-full rounded-xl border px-3 py-3 text-left text-sm transition ${
+                                                    isSelected
+                                                        ? "border-sky-500 bg-sky-50"
+                                                        : "border-slate-200 bg-white hover:bg-slate-50"
+                                                }`}
+                                            >
+                                                <div className="font-medium text-slate-900">
+                                                    {s.name}
+                                                </div>
+                                                <div className="mt-1 text-xs text-slate-500">
+                                                    {[s.city, s.postal_code].filter(Boolean).join(" · ") || "Location unavailable"}
+
+                                                </div>
+                                            </button>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="rounded-xl border border-dashed border-slate-200 px-3 py-4 text-sm text-slate-500">
+                                        No facilities match your search.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {recommendMode === "manual" ? (
+                        <button
+                            onClick={() =>
+                                onRecommendElsewhere(
+                                    recommendedFacilityDraft,
+                                    recommendationReasonDraft
+                                )
+                            }
+                            className="mt-3 w-full rounded-xl bg-slate-900 px-3 py-2 text-white"
+                        >
+                            Recommend elsewhere
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => onReturnToNrin(recommendationReasonDraft)}
+                            className="mt-3 w-full rounded-xl bg-slate-900 px-3 py-2 text-white"
+                        >
+                            Let nrin choose next best fit
+                        </button>
+                    )}
+                </div>
+                )}
+
+                {(activeWorkflowAction === "returned_to_nrin" ||
+                    referral.status === "returned_to_nrin") && (
+                    <div className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm ring-1 ring-rose-100">
+                        <h2 className="text-sm font-semibold text-slate-900">
+                            Return to nrin
+                        </h2>
+                    <p className="mt-2 text-xs text-slate-500">
+                        Use this when the patient is not a fit and should go back into the system.
+                    </p>
+
+                    <div className="mt-4">
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Reason
+                        </label>
+                        <textarea
+                            value={recommendationReasonDraft}
+                            onChange={(e) => setRecommendationReasonDraft(e.target.value)}
+                            placeholder="Why is this patient not a fit?"
+                            className="min-h-[110px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none ring-0 transition focus:border-slate-300 focus:bg-white"
+                        />
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => onReturnToNrin(recommendationReasonDraft)}
+                        disabled={isUpdatingStatus || !recommendationReasonDraft.trim()}
+                        className="mt-3 w-full rounded-xl bg-rose-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+                    >
+                        Return to nrin
+                    </button>
+                </div>
+                )}
 
                 {/* Notes (now wired to Supabase) */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

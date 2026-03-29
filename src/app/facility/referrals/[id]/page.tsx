@@ -8,6 +8,7 @@ import ReferralDetailSheet from "@/components/facility/ReferralDetailSheet";
 
 type Referral = {
     id: string;
+    case_id: string | null;
     patient_id: string;
     referral_source: string | null;
     status: string;
@@ -16,6 +17,8 @@ type Referral = {
     facility_site_id: string | null;
     notes: string | null;
     acuity_level: string | null;
+    recommended_facility_site_id: string | null;
+    recommendation_reason: string | null;
 };
 
 type Patient = {
@@ -38,7 +41,17 @@ export default function ReferralDetailPage() {
     const [isSavingNotes, setIsSavingNotes] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [facilitySites, setFacilitySites] = useState<
-        { id: string; name: string }[]
+        {
+            id: string;
+            name: string;
+            city: string | null;
+            postal_code: string | null;
+            programs_offered: string | null;
+            accepts_private_insurance: boolean | null;
+            accepts_medicaid: boolean | null;
+            accepts_self_pay: boolean | null;
+            insurance_notes: string | null;
+        }[]
     >([]);
 
     useEffect(() => {
@@ -77,6 +90,7 @@ export default function ReferralDetailPage() {
             if (!isCancelled) {
                 setReferral({
                     id: referralRow.id,
+                    case_id: referralRow.case_id ?? null,
                     patient_id: referralRow.patient_id,
                     referral_source: referralRow.referral_source ?? null,
                     status: referralRow.status,
@@ -85,6 +99,9 @@ export default function ReferralDetailPage() {
                     facility_site_id: referralRow.facility_site_id ?? null,
                     notes: referralRow.notes ?? null,
                     acuity_level: referralRow.acuity_level ?? null,
+                    recommended_facility_site_id:
+                        referralRow.recommended_facility_site_id ?? null,
+                    recommendation_reason: referralRow.recommendation_reason ?? null,
                 });
             }
 
@@ -110,14 +127,54 @@ export default function ReferralDetailPage() {
                         phone: patientRow.phone ?? null,
                     });
                     // 3. Load facility sites
-                    const { data, error } = await supabase
-                        .from("facility_sites")
-                        .select("id, name")
-                        .order("name", { ascending: true });
+                    const batchSize = 1000;
+                    let from = 0;
+                    let allFacilitySites: {
+                        id: string;
+                        name: string;
+                        city: string | null;
+                        postal_code: string | null;
+                        programs_offered: string | null;
+                        accepts_private_insurance: boolean | null;
+                        accepts_medicaid: boolean | null;
+                        accepts_self_pay: boolean | null;
+                        insurance_notes: string | null;
+                    }[] = [];
 
-                    if (!error && data) {
-                        setFacilitySites(data);
+                    while (true) {
+                        const { data, error } = await supabase
+                            .from("facility_sites")
+                            .select(
+                                "id, name, city, postal_code, programs_offered, accepts_private_insurance, accepts_medicaid, accepts_self_pay, insurance_notes"
+                            )
+                            .order("name", { ascending: true })
+                            .order("id", { ascending: true })
+                            .range(from, from + batchSize - 1);
+
+                        if (error) {
+                            console.error("Error loading facility sites", error);
+                            break;
+                        }
+
+                        if (!data || data.length === 0) {
+                            break;
+                        }
+
+                        allFacilitySites = allFacilitySites.concat(data);
+
+                        if (data.length < batchSize) {
+                            break;
+                        }
+
+                        from += batchSize;
                     }
+
+                    const dedupedFacilitySites = Array.from(
+                        new Map(allFacilitySites.map((site) => [site.id, site])).values()
+                    );
+
+                    console.log("facility_sites loaded:", dedupedFacilitySites.length);
+                    setFacilitySites(dedupedFacilitySites);
                 }
             }
 
@@ -215,11 +272,207 @@ export default function ReferralDetailPage() {
         }
 
         setReferral((prev) =>
-            prev ? { ...prev, facility_site_id: data.facility_site_id } : prev
+            prev
+                ? {
+                    ...prev,
+                    facility_site_id: data.facility_site_id,
+                    updated_at: data.updated_at ?? prev.updated_at,
+                }
+                : prev
         );
 
         setIsUpdatingStatus(false);
     };
+
+    const handleRecommendElsewhere = async (
+        recommendedFacilitySiteId: string,
+        reason: string
+    ) => {
+        if (!referral) return;
+
+        const trimmedReason = reason.trim();
+
+        if (!recommendedFacilitySiteId || !trimmedReason) {
+            setError("Please select a recommended facility and provide a reason.");
+            return;
+        }
+
+        setIsUpdatingStatus(true);
+        setError(null);
+
+        const { data, error: updateError } = await supabase
+            .from("referrals")
+            .update({
+                status: "recommended_elsewhere",
+                recommended_facility_site_id: recommendedFacilitySiteId,
+                recommendation_reason: trimmedReason,
+            })
+            .eq("id", referral.id)
+            .select("*")
+            .single();
+
+        if (updateError) {
+            console.error("Error recommending elsewhere", updateError);
+            setError("Unable to recommend another facility.");
+            setIsUpdatingStatus(false);
+            return;
+        }
+
+        const { data: existingReferral, error: existingReferralError } = await supabase
+            .from("referrals")
+            .select("id")
+            .eq("case_id", referral.case_id)
+            .eq("patient_id", referral.patient_id)
+            .eq("facility_site_id", recommendedFacilitySiteId)
+            .limit(1)
+            .maybeSingle();
+
+        if (existingReferralError) {
+            console.error("Error checking existing receiving referral", existingReferralError);
+            setError("Recommended facility saved, but receiving referral check failed.");
+            setReferral((prev) =>
+                prev
+                    ? {
+                        ...prev,
+                        status: data.status,
+                        updated_at: data.updated_at ?? prev.updated_at,
+                        recommended_facility_site_id:
+                            data.recommended_facility_site_id ?? null,
+                        recommendation_reason: data.recommendation_reason ?? null,
+                    }
+                    : prev
+            );
+            setIsUpdatingStatus(false);
+            return;
+        }
+
+        if (!existingReferral) {
+            const { error: insertError } = await supabase
+                .from("referrals")
+                .insert({
+                    case_id: referral.case_id,
+                    patient_id: referral.patient_id,
+                    facility_site_id: recommendedFacilitySiteId,
+                    referral_source: "facility_recommendation",
+                    status: "new",
+                    acuity_level: referral.acuity_level ?? null,
+                    notes: `Recommended by facility referral ${referral.id}: ${trimmedReason}`,
+                });
+
+            if (insertError) {
+                console.error("Error creating receiving referral", insertError);
+                setError("Recommended facility saved, but new receiving referral could not be created.");
+                setReferral((prev) =>
+                    prev
+                        ? {
+                            ...prev,
+                            status: data.status,
+                            updated_at: data.updated_at ?? prev.updated_at,
+                            recommended_facility_site_id:
+                                data.recommended_facility_site_id ?? null,
+                            recommendation_reason: data.recommendation_reason ?? null,
+                        }
+                        : prev
+                );
+                setIsUpdatingStatus(false);
+                return;
+            }
+        }
+
+        setReferral((prev) =>
+            prev
+                ? {
+                    ...prev,
+                    status: data.status,
+                    updated_at: data.updated_at ?? prev.updated_at,
+                    recommended_facility_site_id:
+                        data.recommended_facility_site_id ?? null,
+                    recommendation_reason: data.recommendation_reason ?? null,
+                }
+                : prev
+        );
+
+        setIsUpdatingStatus(false);
+    };
+    const handleReturnToNrin = async (reason: string) => {
+        if (!referral) return;
+
+        const trimmedReason = reason.trim();
+
+        if (!trimmedReason) {
+            setError("Please provide a reason.");
+            return;
+        }
+
+        setIsUpdatingStatus(true);
+        setError(null);
+
+        const { data, error: updateError } = await supabase
+            .from("referrals")
+            .update({
+                status: "returned_to_nrin",
+                recommendation_reason: trimmedReason,
+                recommended_facility_site_id: null,
+            })
+            .eq("id", referral.id)
+            .select("*")
+            .single();
+
+        if (updateError) {
+            console.error("Error returning to nrin", updateError);
+            setError("Unable to return to nrin.");
+            setIsUpdatingStatus(false);
+            return;
+        }
+
+        setReferral((prev) =>
+            prev
+                ? {
+                    ...prev,
+                    status: data.status,
+                    updated_at: data.updated_at ?? prev.updated_at,
+                    recommendation_reason: data.recommendation_reason ?? null,
+                    recommended_facility_site_id: null,
+                }
+                : prev
+        );
+
+        // 🔥 AUTO REROUTE — create new referral
+        try {
+            const { data: nextFacility, error: nextFacilityError } = await supabase
+                .from("facility_sites")
+                .select("id")
+                .neq("id", referral.facility_site_id)
+                .limit(1)
+                .single();
+
+            if (nextFacilityError) {
+                console.error("Error finding next facility", nextFacilityError);
+            } else if (nextFacility) {
+                const { error: insertError } = await supabase
+                    .from("referrals")
+                    .insert({
+                        case_id: referral.case_id,
+                        patient_id: referral.patient_id,
+                        facility_site_id: nextFacility.id,
+                        status: "new",
+                        referral_source: "nrin_reroute",
+                        notes: `Auto-rerouted after return_to_nrin from ${referral.facility_site_id}: ${trimmedReason}`,
+                    });
+
+                if (insertError) {
+                    console.error("Error creating rerouted referral", insertError);
+                } else {
+                    console.log("Auto reroute created →", nextFacility.id);
+                }
+            }
+        } catch (e) {
+            console.error("Auto reroute failed", e);
+        }
+
+        setIsUpdatingStatus(false);
+    };
+
     const handleSaveNotes = async (nextNotes: string) => {
         if (!referral) return;
 
@@ -317,6 +570,8 @@ export default function ReferralDetailPage() {
             </div>
 
             <ReferralDetailSheet
+                onRecommendElsewhere={handleRecommendElsewhere}
+                onReturnToNrin={handleReturnToNrin}
 
                 referral={referral}
                 patient={patient}
