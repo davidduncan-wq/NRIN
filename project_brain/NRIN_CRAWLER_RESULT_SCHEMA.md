@@ -301,3 +301,34 @@ an evidence engine
 a synopsis drafting engine
 a schema-gap detector
 Its role is to enrich facility profiles while teaching NRIN what the treatment-center market actually looks like.
+---
+
+## Session Update — 2026-03-30 — Queue A insurance enrichment v2
+
+### New effective signal classes
+Crawler-derived insurance truth currently comes from four practical signal families:
+
+1. Named carrier evidence
+2. Verification-flow evidence
+3. Composite insurance image/logo evidence
+4. Weak phrase evidence
+
+### Important session conclusion
+Composite insurance image/logo evidence is a strong practical signal in the rehab/treatment-center domain.
+Many legitimate facilities do not expose carrier names in parseable text, but do display payer logos.
+This signal now meaningfully recovers previously missed private-insurance positives.
+
+### Current limitation
+Composite image detection is currently used at runtime/summary level but is not yet persisted as its own dedicated DB column.
+If future analytics require DB-level inspection of this signal, add a dedicated persisted field.
+
+### Schema interpretation warning
+`accepts_private_insurance_detected = false` does not currently mean “definitive no.”
+It may represent:
+- unresolved false bucket
+- public/community candidate
+- weak site
+- true negative
+
+Because of this, post-crawl truth resolution is required for final interpretation.
+

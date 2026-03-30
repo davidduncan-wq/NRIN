@@ -1,113 +1,55 @@
-# NRIN — NEXT BUILD TARGET
+# NEXT BUILD TARGET — NRIN
+Updated: 2026-03-30
 
-## Phase
-Patient Matching → Match Presentation V1
+## Target
+Build and validate a **post-crawl insurance truth resolver**.
 
-## Objective
-Transform the current working patient match experience into a high-trust, premium, facility-first presentation surface.
+## Why this is next
+Crawler v2 successfully improved evidence collection:
+- homepage + admissions + insurance + verify surfaces
+- image/logo detection
+- verification-flow detection
+- queue telemetry
+- strong recovery from false/unresolved bucket
 
-The matching system already works.
+Remaining misses are now interpretive.
 
-The next task is to make the experience feel:
-- calm
-- trustworthy
-- humane
-- premium
+## Success criteria
+A successful next build will:
 
-without changing the underlying matcher.
+1. flip obvious private/commercial false negatives to true
+2. correctly respect exclusion/negation language
+3. preserve false-but-alive rows as likely public/community/manual-review residue
+4. avoid expanding crawler scope
+5. avoid polluting ranking with crawler signal strength
 
----
+## Explicit non-goals
+- do not expand crawler breadth
+- do not build more page-hunting heuristics
+- do not let signal confidence drive ranking
+- do not re-open infinite crawler experimentation
 
-## Current Truth
+## Example targets for resolver logic
+Positive commercial/private phrasing:
+- most private insurance
+- most commercial insurance
+- most major insurance
+- most major insurers
+- major insurance plans
+- commercial insurance plans
+- private insurance and Medicaid
+- Medicaid, Medicare, and most commercial insurance
 
-### Working
-- real `facility_intelligence` fetch
-- real `facility_sites` identity join
-- evidence-backed explanations
-- detail sheet with real snippets + URLs
-- demo fallback preserved
+Negation / exclusion phrasing:
+- excluding Medicare and Medicaid
+- no Medicaid accepted
+- does not accept Medicaid
+- not accepted
+- does not take
 
-### Not yet strong enough
-- visual language still feels too much like AI/SaaS product grammar
-- match card still feels too much like a widget/component
-- facility presentation is not yet brochure-quality
-- explanation hierarchy still needs refinement
+## Downstream effect
+This build protects matching/routing integrity by ensuring:
+- good facilities do not get excluded because they are quiet
+- crawler evidence is translated into truth more intelligently
+- the remaining unresolved bucket becomes more useful for indigent/public path work
 
----
-
-## Core Rule
-
-The card should sell the facility.
-
-The explanation should sell the recommendation.
-
-The evidence should defend the explanation.
-
----
-
-## Build Priorities
-
-### 1. View model as presentation boundary
-File:
-- `src/lib/matching/buildMatchViewModel.ts`
-
-Ensure this layer owns:
-- title
-- subtitle
-- location
-- optional logo
-- optional hero image
-- CTA labels
-- humane explanation summary
-
-### 2. Facility-first card surface
-File:
-- `src/components/patient/MatchCardStack.tsx`
-
-Render only what belongs on the primary surface:
-- identity
-- reassurance
-- action
-- subtle navigation
-
-No score leakage.
-No reason pills.
-No debug-style boxes.
-
-### 3. Explanation-first detail sheet
-File:
-- `src/components/patient/MatchDetailSheet.tsx`
-
-Hierarchy:
-1. humane explanation summary
-2. structured reasons
-3. evidence links
-
-### 4. Preserve future brochure path
-Current pass should remain compatible with later:
-- logos
-- hero imagery
-- brochure-level facility assets
-
----
-
-## Non-Goals
-
-Do NOT:
-- change scoring
-- change filters
-- change crawler
-- build crawler v2
-- widen into other product surfaces
-
----
-
-## Success Criteria
-
-When this pass is done, the user should feel:
-
-“This looks like a real place I could go.”
-
-Not:
-
-“This is an AI system recommending something.”

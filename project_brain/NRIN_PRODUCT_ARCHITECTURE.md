@@ -326,3 +326,40 @@ to:
 
 - a true routing and admissions operating system for recovery placement
 
+
+---
+
+## Architecture Update — 2026-03-30 — Insurance truth separation
+
+New architecture decision:
+
+### Crawler is not the truth authority
+The crawler is now explicitly treated as an evidence collector.
+It is responsible for:
+- page fetch
+- signal extraction
+- evidence capture
+- narrow surface exploration
+
+It is NOT responsible for final insurance truth interpretation.
+
+### New post-crawl resolver layer
+A separate resolver layer should interpret `facility_intelligence` evidence after crawl.
+This resolver will:
+- promote private/commercial acceptance when text implies it
+- respect exclusion and negation language
+- preserve public/community residue
+- prevent crawler complexity from expanding indefinitely
+
+### Reason for the split
+Queue A enrichment v2 demonstrated that:
+- crawler can now recover substantial truth from previously low-confidence rows
+- remaining misses are interpretation failures, not fetch failures
+- expanding crawler further would create complexity without proportional value
+
+### Product implication
+This protects NRIN’s core doctrine:
+- facility ranking should not reward marketing loudness
+- crawler confidence should not become ranking score
+- insurance truth should be derived cleanly and then used as truth/filtering input
+

@@ -160,3 +160,26 @@ Read in this order:
 ## One-Line Summary
 
 NRIN is a two-repo system: the private `NRIN` repo is the canonical engineering product, while `NRIN-demo` is a separate public demo repo that may supply selective visual inspiration but not core engineering truth.
+---
+
+## Update — 2026-03-30 — Insurance enrichment / resolver phase
+
+### Current active files
+- `scripts/runQueueAHeadless.ts`
+  - runs Queue A enrichment over unresolved private-insurance slice
+  - prints end-of-run summary
+- `src/crawler/fetchPagesHeadless.ts`
+  - fetches homepage + prioritized/fallback insurance/admissions pages
+  - now includes image/logo signal support
+- `src/crawler/crawlFacilityHeadless.ts`
+  - orchestration wrapper for headless crawl path
+
+### Planned next file(s)
+- resolver script / module for post-crawl insurance truth interpretation
+- likely target:
+  - `scripts/runInsuranceTruthResolver.ts`
+  - or similar dedicated resolver module
+
+### Important boundary
+Crawler and resolver are now separate conceptual layers.
+

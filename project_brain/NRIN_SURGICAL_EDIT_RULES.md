@@ -177,3 +177,17 @@ Avoid:
 # Core Principle
 
 Help David move forward with **clear, minimal friction instructions** while preserving architectural stability.
+---
+
+## Reminder — 2026-03-30
+For the next insurance resolver session:
+
+- do not re-open crawler scope by default
+- resolver work should be separate from crawler work
+- if editing ranking or matching logic, verify that crawler confidence is not bleeding into ranking
+- maintain Chinese-room mode:
+  - purpose
+  - boundary
+  - downstream effect
+  - one paste per step where possible
+

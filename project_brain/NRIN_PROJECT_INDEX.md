@@ -33,3 +33,17 @@
 
 ## Important current truth
 The dated handoff/boot pair should be treated as canonical for this checkpoint.
+
+---
+
+## Update — 2026-03-30
+Current active engineering phase:
+- Queue A crawler enrichment v2 completed to “good enough”
+- next target is separate post-crawl insurance truth resolver
+
+Key files now central to this phase:
+- `scripts/runQueueAHeadless.ts`
+- `src/crawler/fetchPagesHeadless.ts`
+- `src/crawler/crawlFacilityHeadless.ts`
+- future resolver file to be created in next session
+
