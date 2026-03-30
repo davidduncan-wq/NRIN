@@ -191,6 +191,137 @@ function SelfPaySection({
     );
 }
 
+
+function PossibleFundingSignalsSection({
+    form,
+    setForm,
+}: Pick<Step5LifeFitProps, "form" | "setForm">) {
+    if (form.insuranceStatus !== "no" && form.insuranceStatus !== "not_sure") return null;
+
+    const selected = form.possibleFundingSignals ?? [];
+
+    const toggleSignal = (value: string) => {
+        setForm((prev) => {
+            const current = prev.possibleFundingSignals ?? [];
+
+            if (value === "none" || value === "not_sure") {
+                return {
+                    ...prev,
+                    possibleFundingSignals: [value],
+                    militaryStatus: undefined,
+                    militaryCoverage: undefined,
+                };
+            }
+
+            const filtered = current.filter(
+                (item: string) => item !== "none" && item !== "not_sure"
+            );
+
+            const next = filtered.includes(value)
+                ? filtered.filter((item: string) => item !== value)
+                : [...filtered, value];
+
+            const hasMilitary = next.includes("military");
+
+            return {
+                ...prev,
+                possibleFundingSignals: next,
+                militaryStatus: hasMilitary ? prev.militaryStatus : undefined,
+                militaryCoverage: hasMilitary ? prev.militaryCoverage : undefined,
+            };
+        });
+    };
+
+    return (
+        <SectionShell
+            title="Sometimes there are still ways to get treatment covered"
+            body="Does any of this sound like you? You do not need to know whether it definitely applies."
+        >
+            <div className="flex flex-wrap gap-2">
+                {[
+                    { value: "military", label: "I’ve served in the military" },
+                    { value: "tribal", label: "I’m part of a tribe or receive tribal services" },
+                    { value: "union_employer", label: "My job, union, or employer might help" },
+                    { value: "court_county", label: "I’m involved with court, probation, or county services" },
+                    { value: "not_sure", label: "I’m not sure" },
+                    { value: "none", label: "None of these" },
+                ].map((option) => (
+                    <ChoicePill
+                        key={option.value}
+                        active={selected.includes(option.value)}
+                        label={option.label}
+                        onClick={() => toggleSignal(option.value)}
+                    />
+                ))}
+            </div>
+        </SectionShell>
+    );
+}
+
+function MilitaryStatusSection({ form, setForm }: any) {
+    if (!(form.possibleFundingSignals ?? []).includes("military")) return null;
+
+    return (
+        <SectionShell
+            title="Have you ever served in the U.S. military?"
+            body=""
+        >
+            {[
+                { value: "active", label: "Active Duty" },
+                { value: "veteran", label: "Veteran" },
+                { value: "guard", label: "National Guard / Reserves" },
+                { value: "none", label: "No" },
+                { value: "unknown", label: "Prefer not to say" },
+            ].map((option) => (
+                <ChoicePill
+                    key={option.value}
+                    active={form.militaryStatus === option.value}
+                    label={option.label}
+                    onClick={() =>
+                        setForm((prev: any) => ({
+                            ...prev,
+                            militaryStatus: option.value,
+                            militaryCoverage:
+                                option.value === "none" ? undefined : prev.militaryCoverage,
+                        }))
+                    }
+                />
+            ))}
+        </SectionShell>
+    );
+}
+
+function MilitaryCoverageSection({ form, setForm }: any) {
+    if (!(form.possibleFundingSignals ?? []).includes("military")) return null;
+    if (!form.militaryStatus || form.militaryStatus === "none") return null;
+
+    return (
+        <SectionShell
+            title="Do you have TRICARE or VA healthcare?"
+            body=""
+        >
+            {[
+                { value: "tricare", label: "TRICARE" },
+                { value: "va", label: "VA Healthcare" },
+                { value: "none", label: "No" },
+                { value: "unknown", label: "Not sure" },
+            ].map((option) => (
+                <ChoicePill
+                    key={option.value}
+                    active={form.militaryCoverage === option.value}
+                    label={option.label}
+                    onClick={() =>
+                        setForm((prev: any) => ({
+                            ...prev,
+                            militaryCoverage: option.value,
+                        }))
+                    }
+                />
+            ))}
+        </SectionShell>
+    );
+}
+
 function EnvironmentPreferenceSection({
     form,
     setForm,
@@ -314,6 +445,9 @@ export function Step5LifeFit({
                 <InsuranceTimingSection form={form} setForm={setForm} />
                 <InsuranceMethodSection form={form} setForm={setForm} />
                 <SelfPaySection form={form} setForm={setForm} />
+                <PossibleFundingSignalsSection form={form} setForm={setForm} />
+                <MilitaryStatusSection form={form} setForm={setForm} />
+                <MilitaryCoverageSection form={form} setForm={setForm} />
                 <EnvironmentPreferenceSection form={form} setForm={setForm} />
                 <NarrativeSection form={form} setForm={setForm} />
 

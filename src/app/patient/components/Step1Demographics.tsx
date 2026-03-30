@@ -45,6 +45,38 @@ export function Step1Demographics({
             }
         >
             <div className="space-y-6">
+                {/* Military (early signal) */}
+                <div className="space-y-3">
+                    <label className="text-sm font-medium text-gray-900">
+                        Have you ever served in the military?
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        {([
+                            { label: "No", value: "none" },
+                            { label: "Yes", value: "veteran" },
+                            { label: "Active / Guard", value: "active" },
+                            { label: "Prefer not to say", value: "unknown" },
+                        ] as const).map((opt) => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        militaryStatus: opt.value,
+                                    }))
+                                }
+                                className={`px-4 py-2 rounded-xl text-sm font-medium border ${
+                                    form.militaryStatus === opt.value
+                                        ? "bg-black text-white border-black"
+                                        : "bg-white text-gray-700 border-gray-300"
+                                }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-900">

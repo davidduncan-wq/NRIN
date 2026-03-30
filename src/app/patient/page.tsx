@@ -154,6 +154,10 @@ export type FormState = {
     environmentPreference: "" | "island" | "desert" | "mountains" | "east_coast" | "west_coast" | "urban" | "close_to_home" | "dont_care";
     insuranceStatus: "" | "yes" | "no" | "not_sure";
     insuranceType: "" | "private" | "medicaid" | "medicare" | "va" | "not_sure";
+    possibleFundingSignals?: ("military" | "tribal" | "union_employer" | "court_county" | "none" | "not_sure")[];
+    militaryStatus?: "active" | "veteran" | "guard" | "none" | "unknown";
+    militaryCoverage?: "tricare" | "va" | "none" | "unknown";
+
     selfPayIntent: "" | "yes" | "no" | "not_sure";
 
     workDailyLifeNotes: string;
@@ -219,6 +223,10 @@ const initialFormState: FormState = {
     environmentPreference: "",
     insuranceStatus: "",
     insuranceType: "",
+    possibleFundingSignals: [],
+    militaryStatus: undefined,
+    militaryCoverage: undefined,
+
     selfPayIntent: "",
 
     workDailyLifeNotes: "",

@@ -34,22 +34,47 @@ export function parseInsurance(pages: CrawlPageResult[]): InsuranceDetection[] {
   const results: InsuranceDetection[] = []
 
   for (const carrier of INSURANCE_CARRIER_UNIVERSE) {
-    const evidence = pages.flatMap((page) =>
-      collectEvidenceSnippets(page.url, page.rawText, carrier.patterns, `insurance:${carrier.key}`),
-    )
+    const evidence = pages.flatMap((page) => {
+      const haystack = `${page.title ?? ""}\n${page.rawText}`
+      return collectEvidenceSnippets(page.url, haystack, carrier.patterns, `insurance:${carrier.key}`)
+    })
 
     const filteredEvidence = evidence.filter(
       (item) => !looksNegated(item.snippet) && !looksLikeQuestion(item.snippet),
     )
 
-    if (filteredEvidence.length === 0) continue
+    const fullTextFallbackEvidence = pages
+      .filter((page) => {
+        const haystack = `${page.title ?? ""}\n${page.rawText}`
+        return carrier.patterns.some((pattern) => pattern.test(haystack))
+      })
+      .map((page) => ({
+        pageUrl: page.url,
+        label: `insurance:${carrier.key}:fulltext`,
+        snippet: (page.title ?? page.rawText.slice(0, 200)).trim(),
+      }))
+      .filter(
+        (item) => item.snippet && !looksNegated(item.snippet) && !looksLikeQuestion(item.snippet),
+      )
 
-    const rawMentions = [...new Set(filteredEvidence.map((item) => item.snippet))]
+    const combinedEvidence = [
+      ...filteredEvidence,
+      ...fullTextFallbackEvidence.filter(
+        (fallback) =>
+          !filteredEvidence.some(
+            (item) => item.pageUrl === fallback.pageUrl && item.snippet === fallback.snippet,
+          ),
+      ),
+    ]
+
+    if (combinedEvidence.length === 0) continue
+
+    const rawMentions = [...new Set(combinedEvidence.map((item) => item.snippet))]
 
     results.push({
       normalizedName: carrier.key,
       rawMentions,
-      evidence: filteredEvidence,
+      evidence: combinedEvidence,
     })
   }
 

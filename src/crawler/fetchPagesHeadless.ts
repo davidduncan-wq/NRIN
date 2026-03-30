@@ -115,6 +115,8 @@ export async function fetchPagesHeadless(rootUrl: string): Promise<CrawlPageResu
     const candidateLinks = rankCandidateLinks(rawAnchors, root)
 
     const forcedPriorityLinks = [
+      new URL("/admissions", root).toString(),
+      new URL("/admission", root).toString(),
       new URL("/insurance", root).toString(),
       new URL("/verify-insurance", root).toString(),
       new URL("/check-insurance", root).toString(),
@@ -179,6 +181,7 @@ export async function fetchPagesHeadless(rootUrl: string): Promise<CrawlPageResu
       title: null,
       rawHtml: "",
       rawText: "",
+
       fetchError: error instanceof Error ? error.message : String(error),
     })
   }
@@ -313,6 +316,42 @@ function looksLikeSoft404(text: string): boolean {
 }
 
 function buildPage(url: string, rawHtml: string): CrawlPageResult {
+  const rawText = stripHtmlToText(rawHtml)
+
+  const imgAltMatches = [...rawHtml.matchAll(/<img[^>]*alt=["']([^"']+)["']/gi)].map(
+    (match) => match[1],
+  )
+  const imgSrcMatches = [...rawHtml.matchAll(/<img[^>]*src=["']([^"']+)["']/gi)].map(
+    (match) => match[1],
+  )
+
+  const hasCompositeInsuranceImage = imgSrcMatches.some((src) => {
+    const lower = src.toLowerCase()
+    return lower.includes("insurance") || lower.includes("insurances")
+  })
+
+  // --- NEW: image cluster heuristic ---
+  const imgCount = imgAltMatches.length + imgSrcMatches.length
+
+  const context = (extractTitle(rawHtml) + "\n" + rawText).toLowerCase()
+
+  const hasInsuranceContext =
+    context.includes("insurance") ||
+    context.includes("coverage") ||
+    context.includes("we accept") ||
+    context.includes("accepted") ||
+    context.includes("providers")
+
+  const hasImageCluster = imgCount >= 6 && hasInsuranceContext
+
+  const compositeInsuranceSignal =
+    hasCompositeInsuranceImage || hasImageCluster
+      ? " composite_insurance_image_detected "
+      : ""
+
+  const imageSignals = [...imgAltMatches, ...imgSrcMatches].join(" ").toLowerCase()
+  const enrichedRawText = `${rawText}\n${imageSignals}${compositeInsuranceSignal}`.trim()
+
   return {
     url,
     status: 200,
@@ -320,7 +359,7 @@ function buildPage(url: string, rawHtml: string): CrawlPageResult {
     fetchedAt: new Date().toISOString(),
     title: extractTitle(rawHtml),
     rawHtml,
-    rawText: stripHtmlToText(rawHtml),
+    rawText: enrichedRawText,
     fetchError: null,
   }
 }
