@@ -173,6 +173,7 @@ export function buildPatientMatchingInput(
     requiresMAT,
     insuranceCarrier,
     fundingType,
+    closeToHomeRequested: form.environmentPreference === "close_to_home",
     wantsProfessionalProgram,
     wantsFamilyProgram,
     city: form.city || undefined,
@@ -244,7 +245,7 @@ export function buildPatientFromSearchParams(
       ? Number(searchParams.longitude)
       : undefined
 
-  const closeToHome = refineGeo !== "open"
+  const closeToHome = refineGeo === "close"
 
   return {
     needsDetox: refineLevels.includes("detox"),
@@ -256,6 +257,7 @@ export function buildPatientFromSearchParams(
     ),
     insuranceCarrier,
     fundingType: deriveFundingTypeFromSearchParams(searchParams),
+    closeToHomeRequested: closeToHome,
     wantsProfessionalProgram: parseBoolean(
       searchParams.refineProfessional,
       parseBoolean(searchParams.wantsProfessionalProgram, false),

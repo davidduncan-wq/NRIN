@@ -105,7 +105,10 @@ export function buildLifeFitProfile(form: FormState): LifeFitProfile {
     },
     preferences: {
       wantsDistanceFromHome: wantsDistanceFromHome || undefined,
-      preferredEnvironment: form.environmentPreference || undefined,
+      preferredEnvironment:
+        form.environmentPreference && form.environmentPreference !== "close_to_home"
+          ? form.environmentPreference
+          : undefined,
       privacyImportant: privacyImportant || undefined,
     },
     signals: {

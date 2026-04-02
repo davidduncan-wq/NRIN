@@ -19,6 +19,8 @@ type FacilityIntelligenceRow = {
     professional_program: boolean | null
     accepted_insurance_providers_detected: string[] | null
     accepts_private_insurance_detected: boolean | null
+    accepts_private_insurance_resolved: boolean | null
+    accepted_private_insurance_carriers_resolved: string[] | null
     matcher_summary: string | null
     detected_program_types: any[] | null
     detected_insurance_carriers: any[] | null
@@ -105,6 +107,8 @@ function mapRowToFacility(
         ? row.facility_sites[0] ?? null
         : row.facility_sites ?? null
 
+    if (!facilitySite?.id || !facilitySite?.name) return null
+
     const detectedLevelsOfCare: LevelOfCare[] = []
 
     if (row.offers_detox) detectedLevelsOfCare.push("detox")
@@ -115,30 +119,31 @@ function mapRowToFacility(
     if (row.offers_aftercare) detectedLevelsOfCare.push("aftercare")
 
     const acceptedInsurance: InsuranceCarrier[] =
-        ((row.accepted_insurance_providers_detected ?? []).map((value) =>
-            value.toLowerCase(),
-        ) as InsuranceCarrier[])
+        row.accepted_private_insurance_carriers_resolved ??
+        row.accepted_insurance_providers_detected ??
+        row.detected_insurance_carriers ??
+        []
 
     return {
-        facilityId: row.facility_site_id,
-        facilityName:
-            facilitySite?.name?.trim() ||
-            row.matcher_summary ||
-            "Unknown Facility",
-        website: facilitySite?.website ?? undefined,
-        city: facilitySite?.city ?? undefined,
-        state: facilitySite?.state ?? undefined,
-        latitude: facilitySite?.latitude ?? undefined,
-        longitude: facilitySite?.longitude ?? undefined,
+        facilityId: facilitySite.id,
+        facilityName: facilitySite.name,
+        website: facilitySite.website ?? undefined,
+        city: facilitySite.city ?? undefined,
+        state: facilitySite.state ?? undefined,
+        latitude: facilitySite.latitude ?? undefined,
+        longitude: facilitySite.longitude ?? undefined,
         matcherSummary: row.matcher_summary ?? undefined,
-        
+
         detectedLevelsOfCare,
         hasDualDiagnosisSignal: row.dual_diagnosis_support ?? false,
         hasMATSignal: row.mat_supported ?? false,
         hasProfessionalProgramSignal: row.professional_program ?? false,
         hasFamilyProgramSignal: row.family_therapy_program ?? false,
         acceptedInsurance,
-        acceptsPrivateInsurance: row.accepts_private_insurance_detected ?? false,
+        acceptsPrivateInsurance:
+            row.accepts_private_insurance_resolved ??
+            row.accepts_private_insurance_detected ??
+            false,
         evidenceConfidence: row.confidence_score ?? 0,
         rawProgramEvidence: row.detected_program_types ?? [],
         rawInsuranceEvidence: row.detected_insurance_carriers ?? [],
@@ -173,6 +178,8 @@ export async function fetchFacilityMatchingInputs(options?: {
           professional_program,
           accepted_insurance_providers_detected,
           accepts_private_insurance_detected,
+          accepts_private_insurance_resolved,
+          accepted_private_insurance_carriers_resolved,
           matcher_summary,
           detected_program_types,
           detected_insurance_carriers,
@@ -200,7 +207,7 @@ export async function fetchFacilityMatchingInputs(options?: {
         }
 
         if (options?.insuranceType === "private") {
-            query = query.eq("accepts_private_insurance_detected", true)
+            query = query.or("accepts_private_insurance_resolved.eq.true,accepts_private_insurance_detected.eq.true")
         }
 
         // selfPayOnly = true means UNLOCK insurance constraints (no DB filter)

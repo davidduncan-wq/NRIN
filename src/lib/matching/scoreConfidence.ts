@@ -40,8 +40,9 @@ export function scoreConfidence(
 
   const preferredEnvironment =
     patient?.lifeFitProfile?.preferences?.preferredEnvironment
+  const closeToHomeRequested = patient.closeToHomeRequested === true
 
-  if (preferredEnvironment === "close_to_home") {
+  if (closeToHomeRequested) {
     if (
       patient.latitude &&
       patient.longitude &&

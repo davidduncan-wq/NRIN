@@ -458,7 +458,9 @@ export default function PatientIntakePage() {
                 params.set("longitude", String(patientInput.longitude));
             }
 
-            if (form.environmentPreference) {
+            if (form.environmentPreference === "close_to_home") {
+                params.set("refineGeo", "close");
+            } else if (form.environmentPreference) {
                 params.set("environmentPreference", form.environmentPreference);
             }
 

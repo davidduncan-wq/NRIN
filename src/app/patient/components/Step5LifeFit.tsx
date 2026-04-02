@@ -4,6 +4,9 @@ import * as React from "react";
 import { StepShell } from "./StepShell";
 import type { FormState } from "../page";
 
+type PossibleFundingSignal =
+    NonNullable<FormState["possibleFundingSignals"]>[number];
+
 type Step5LifeFitProps = {
     form: FormState;
     setForm: React.Dispatch<React.SetStateAction<FormState>>;
@@ -198,11 +201,20 @@ function PossibleFundingSignalsSection({
 }: Pick<Step5LifeFitProps, "form" | "setForm">) {
     if (form.insuranceStatus !== "no" && form.insuranceStatus !== "not_sure") return null;
 
-    const selected = form.possibleFundingSignals ?? [];
+    const selected: PossibleFundingSignal[] = form.possibleFundingSignals ?? [];
 
-    const toggleSignal = (value: string) => {
+    const options: { value: PossibleFundingSignal; label: string }[] = [
+        { value: "military", label: "I’ve served in the military" },
+        { value: "tribal", label: "I’m part of a tribe or receive tribal services" },
+        { value: "union_employer", label: "My job, union, or employer might help" },
+        { value: "court_county", label: "I’m involved with court, probation, or county services" },
+        { value: "not_sure", label: "I’m not sure" },
+        { value: "none", label: "None of these" },
+    ];
+
+    const toggleSignal = (value: PossibleFundingSignal) => {
         setForm((prev) => {
-            const current = prev.possibleFundingSignals ?? [];
+            const current: PossibleFundingSignal[] = prev.possibleFundingSignals ?? [];
 
             if (value === "none" || value === "not_sure") {
                 return {
@@ -214,11 +226,11 @@ function PossibleFundingSignalsSection({
             }
 
             const filtered = current.filter(
-                (item: string) => item !== "none" && item !== "not_sure"
+                (item) => item !== "none" && item !== "not_sure"
             );
 
-            const next = filtered.includes(value)
-                ? filtered.filter((item: string) => item !== value)
+            const next: PossibleFundingSignal[] = filtered.includes(value)
+                ? filtered.filter((item) => item !== value)
                 : [...filtered, value];
 
             const hasMilitary = next.includes("military");
@@ -238,14 +250,7 @@ function PossibleFundingSignalsSection({
             body="Does any of this sound like you? You do not need to know whether it definitely applies."
         >
             <div className="flex flex-wrap gap-2">
-                {[
-                    { value: "military", label: "I’ve served in the military" },
-                    { value: "tribal", label: "I’m part of a tribe or receive tribal services" },
-                    { value: "union_employer", label: "My job, union, or employer might help" },
-                    { value: "court_county", label: "I’m involved with court, probation, or county services" },
-                    { value: "not_sure", label: "I’m not sure" },
-                    { value: "none", label: "None of these" },
-                ].map((option) => (
+                {options.map((option) => (
                     <ChoicePill
                         key={option.value}
                         active={selected.includes(option.value)}

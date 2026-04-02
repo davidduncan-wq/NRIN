@@ -61,6 +61,7 @@ export type PatientMatchingInput = {
   state?: string
   latitude?: number
   longitude?: number
+  closeToHomeRequested?: boolean
   wantsProfessionalProgram?: boolean
   wantsFamilyProgram?: boolean
   lifeFitProfile?: LifeFitProfile
