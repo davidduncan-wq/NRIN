@@ -42,3 +42,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 brain_export/
+
+# local data files
+data/*.csv
+data/*.zip
+data/*.txt
+
