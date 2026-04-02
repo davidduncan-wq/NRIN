@@ -12,6 +12,7 @@ export type TreatmentCenterRow = {
   address_line1: string | null;
   address_line2: string | null;
   city: string | null;
+  state: string | null;
   postal_code: string | null;
   country: string | null;
   phone: string | null;
@@ -36,39 +37,54 @@ export default function FacilityDashboardPage() {
       setIsLoading(true);
       setLoadError(null);
 
-      const { data, error } = await supabase
-        .from("facility_sites")
-        .select(`
-          id,
-          name,
-          address_line1,
-          address_line2,
-          city,
-          postal_code,
-          country,
-          phone,
-          website,
-          programs_offered,
-          primary_program,
-          accepts_medicaid,
-          accepts_private_insurance,
-          accepts_self_pay,
-          insurance_notes
-        `)
-        .order("name", { ascending: true });
+      const pageSize = 1000;
+      let from = 0;
+      let allRows: TreatmentCenterRow[] = [];
 
-      if (error) {
-        console.error("Error loading facility_sites:", error);
-        if (!isCancelled) {
-          setLoadError("Unable to load treatment centers.");
-          setCenters([]);
-          setIsLoading(false);
+      while (true) {
+        const to = from + pageSize - 1;
+
+        const { data, error } = await supabase
+          .from("facility_sites")
+          .select(`
+            id,
+            name,
+            address_line1,
+            address_line2,
+            city,
+            postal_code,
+            country,
+            phone,
+            website,
+            programs_offered,
+            primary_program,
+            accepts_medicaid,
+            accepts_private_insurance,
+            accepts_self_pay,
+            insurance_notes
+          `)
+          .order("name", { ascending: true })
+          .range(from, to);
+
+        if (error) {
+          console.error("Error loading facility_sites:", error);
+          if (!isCancelled) {
+            setLoadError("Unable to load treatment centers.");
+            setCenters([]);
+            setIsLoading(false);
+          }
+          return;
         }
-        return;
+
+        const batch = (data ?? []) as TreatmentCenterRow[];
+        allRows = allRows.concat(batch);
+
+        if (batch.length < pageSize) break;
+        from += pageSize;
       }
 
       if (!isCancelled) {
-        setCenters((data ?? []) as TreatmentCenterRow[]);
+        setCenters(allRows);
         setIsLoading(false);
       }
     };

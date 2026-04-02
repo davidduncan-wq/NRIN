@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import type { TreatmentCenterRow } from "@/app/facility/dashboard/page";
 import { inputBase } from "@/components/ui/InputBase";
-import FacilityDetailSheet from "./FacilityDetailSheet";
 import FacilityProfilePanel from "./FacilityProfilePanel";
 import FacilityVerificationPanel from "./FacilityVerificationPanel";
 import FacilityOperationsPanel from "./FacilityOperationsPanel";
@@ -57,8 +56,6 @@ export default function FacilityDashboardClient({ centers }: Props) {
         centers.find((center) => center.id === selectedId) ??
         null;
 
-    const closeSheet = () => setSelectedId(null);
-
     const insurancePillBase =
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors";
     const insurancePillInactive =
@@ -73,7 +70,24 @@ export default function FacilityDashboardClient({ centers }: Props) {
 
     function handleSelectFacility(id: string) {
         setSelectedId(id);
-        setActiveTab("profile");
+    }
+
+    function handleAdvanceQueue() {
+        if (filteredCenters.length === 0) return;
+
+        if (!selectedId) {
+            setSelectedId(filteredCenters[0]?.id ?? null);
+            return;
+        }
+
+        const currentIndex = filteredCenters.findIndex((center) => center.id === selectedId);
+        if (currentIndex === -1) {
+            setSelectedId(filteredCenters[0]?.id ?? null);
+            return;
+        }
+
+        const nextIndex = (currentIndex + 1) % filteredCenters.length;
+        setSelectedId(filteredCenters[nextIndex]?.id ?? null);
     }
 
     function renderRightPanel() {
@@ -81,7 +95,7 @@ export default function FacilityDashboardClient({ centers }: Props) {
             case "profile":
                 return <FacilityProfilePanel center={selectedCenter} />;
             case "verification":
-                return <FacilityVerificationPanel center={selectedCenter} />;
+                return <FacilityVerificationPanel center={selectedCenter} onAdvanceQueue={handleAdvanceQueue} />;
             case "operations":
                 return <FacilityOperationsPanel center={selectedCenter} />;
             case "directory":
@@ -229,7 +243,6 @@ export default function FacilityDashboardClient({ centers }: Props) {
                 </div>
             </div>
 
-            <FacilityDetailSheet center={selectedCenter} onClose={closeSheet} />
         </>
     );
 }
