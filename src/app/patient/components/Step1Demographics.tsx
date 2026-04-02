@@ -66,10 +66,10 @@ export function Step1Demographics({
                                         militaryStatus: opt.value,
                                     }))
                                 }
-                                className={`px-4 py-2 rounded-xl text-sm font-medium border ${
+                                className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                                     form.militaryStatus === opt.value
-                                        ? "bg-black text-white border-black"
-                                        : "bg-white text-gray-700 border-gray-300"
+                                        ? "border-sky-300 bg-sky-50 text-sky-800"
+                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                                 }`}
                             >
                                 {opt.label}
