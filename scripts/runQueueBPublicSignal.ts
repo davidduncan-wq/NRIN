@@ -36,7 +36,10 @@ async function loadQueueB(): Promise<QueueBRow[]> {
     throw new Error("Queue B fetch failed: " + error.message);
   }
 
-  return (data ?? []) as QueueBRow[];
+  return (data ?? []).map((row: any) => ({
+  ...row,
+  facility_sites: Array.isArray(row.facility_sites) ? row.facility_sites[0] : row.facility_sites
+})) as QueueBRow[];
 }
 
 function inferPublicFacility(name: string | null, website: string | null): boolean {
