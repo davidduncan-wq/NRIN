@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import MatchDetailSheet from "@/components/patient/MatchDetailSheet"
+import MatchTransitionSurface from "@/components/matching/MatchTransitionSurface"
 import PatientRefinementPanel, {
     type PatientRefinementValues,
 } from "@/components/patient/PatientRefinementPanel"
@@ -19,48 +20,6 @@ function getInitials(name: string) {
         .join("")
 }
 
-function StageRow({
-    label,
-    active,
-    done,
-}: {
-    label: string
-    active: boolean
-    done: boolean
-}) {
-    return (
-        <div
-            className={`flex items-center justify-between rounded-2xl border px-4 py-3 transition ${
-                done
-                    ? "border-stone-200 bg-stone-50"
-                    : active
-                      ? "border-stone-300 bg-white"
-                      : "border-stone-100 bg-white/70"
-            }`}
-        >
-            <span
-                className={`text-sm ${
-                    done || active ? "text-stone-800" : "text-stone-400"
-                }`}
-            >
-                {label}
-            </span>
-
-            <span
-                className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-sm transition ${
-                    done
-                        ? "bg-stone-900 text-white"
-                        : active
-                          ? "border border-stone-300 bg-white text-stone-500"
-                          : "border border-stone-200 bg-white text-stone-300"
-                }`}
-            >
-                {done ? "✓" : active ? "…" : ""}
-            </span>
-        </div>
-    )
-}
-
 export default function MatchCardStack({
     matches,
     showPrimaryAction = true,
@@ -73,7 +32,6 @@ export default function MatchCardStack({
     const [isRefining, setIsRefining] = useState(false)
     const [signalsVisible, setSignalsVisible] = useState(false)
     const [currentIndex, setCurrentIndex] = useState(0)
-    const [activeStageIndex, setActiveStageIndex] = useState(0)
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -107,26 +65,7 @@ export default function MatchCardStack({
         setIsRefining(false)
     }, [isRefining, searchParams, current?.id, matches.length])
 
-    useEffect(() => {
-        if (!isRefining) {
-            setActiveStageIndex(0)
-            return
-        }
-
-        setActiveStageIndex(0)
-
-        const timers = [
-            window.setTimeout(() => setActiveStageIndex(1), 500),
-            window.setTimeout(() => setActiveStageIndex(2), 1100),
-            window.setTimeout(() => setActiveStageIndex(3), 1700),
-        ]
-
-        return () => {
-            timers.forEach((timer) => window.clearTimeout(timer))
-        }
-    }, [isRefining])
-
-    const stageLabels = useMemo(() => {
+    const transitionLines = useMemo(() => {
         const labels = ["Reviewing your clinical needs"]
 
         const levels = (searchParams.get("refineLevels") ?? "")
@@ -270,36 +209,14 @@ export default function MatchCardStack({
                 signalsVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
             }`}
         >
-            {isRefining && (
-                <div className="absolute inset-0 z-[90] flex items-center justify-center rounded-[28px] bg-white">
-                    <div className="w-full max-w-xl px-6">
-                        <div className="mx-auto max-w-lg rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_10px_40px_rgba(28,25,23,0.08)] sm:p-8">
-                            <div className="space-y-2 text-center">
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
-                                    Updating recommendations
-                                </p>
-                                <h2 className="text-xl font-semibold tracking-[-0.02em] text-stone-900">
-                                    Looking for a better fit
-                                </h2>
-                                <p className="text-sm leading-6 text-stone-500">
-                                    We’re quietly reviewing the details you gave us and preparing a better set of options.
-                                </p>
-                            </div>
-
-                            <div className="mt-6 space-y-3">
-                                {stageLabels.map((label, index) => (
-                                    <StageRow
-                                        key={label}
-                                        label={label}
-                                        active={activeStageIndex === index}
-                                        done={activeStageIndex > index}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <MatchTransitionSurface
+                open={isRefining}
+                eyebrow="Updating recommendations"
+                title="Looking for a better fit"
+                body="We’re quietly reviewing the details you gave us and preparing a better set of options."
+                lines={transitionLines}
+                variant="card"
+            />
 
             <div className="mb-4 flex items-center justify-between">
                 <div className="text-sm text-stone-500">

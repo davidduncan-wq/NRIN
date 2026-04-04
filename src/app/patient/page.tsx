@@ -13,6 +13,7 @@ import { Step2Contact } from "./components/Step2Contact";
 import { Step4Substances } from "./components/Step4Substances";
 import { useRouter } from "next/navigation";
 import { buildPatientMatchingInput, deriveDesiredLevelsOfCare } from "@/lib/matching/buildPatientProfile";
+import MatchTransitionSurface from "@/components/matching/MatchTransitionSurface";
 
 import type { LevelOfCare } from "@/lib/matching/types";
 
@@ -506,19 +507,29 @@ export default function PatientIntakePage() {
 
     const activeStep = stepsMeta.find((s) => s.id === step);
 
+    const routingLines = [
+        "Reviewing your clinical needs",
+        result?.recommendedProgramType === "detox"
+            ? "Checking detox support"
+            : "Confirming level of care fit",
+        form.insuranceStatus === "yes"
+            ? "Checking payment path"
+            : form.environmentPreference === "close_to_home"
+              ? "Looking closer to home"
+              : "Reviewing support signals",
+        "Preparing your recommendations",
+    ];
+
     return (
         <div className="min-h-screen bg-slate-50">
-            {isRoutingToMatches && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/95 px-6">
-                    <div className="w-full max-w-md text-center space-y-6">
-                        <div className="text-sm text-stone-500">Finding the best options for you…</div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200">
-                            <div className="h-full w-1/2 animate-pulse rounded-full bg-black" />
-                        </div>
-                        <div className="text-xs text-stone-400">This can take a few moments on slower connections.</div>
-                    </div>
-                </div>
-            )}
+            <MatchTransitionSurface
+                open={isRoutingToMatches}
+                eyebrow="Reviewing recommendations"
+                title="Finding the right options"
+                body="We’re quietly reviewing what you shared and preparing your recommendations."
+                lines={routingLines}
+                variant="fullscreen"
+            />
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 md:flex-row">
                 {/* Progress rail (top on mobile, sidebar on desktop) */}
                 <aside className="order-1 md:order-none md:w-64 md:shrink-0">
