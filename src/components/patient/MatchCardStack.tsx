@@ -59,6 +59,11 @@ export default function MatchCardStack({
         }
     }, [currentIndex, matches.length])
 
+    useEffect(() => {
+        if (!isRefining) return
+        setIsRefining(false)
+    }, [isRefining, searchParams, current?.id, matches.length])
+
     if (!current) {
         return (
             <div className="mt-20 text-center text-stone-500">
