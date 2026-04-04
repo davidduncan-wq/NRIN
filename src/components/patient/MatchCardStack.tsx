@@ -28,6 +28,7 @@ export default function MatchCardStack({
 }) {
     const [open, setOpen] = useState(false)
     const [refinementOpen, setRefinementOpen] = useState(false)
+    const [isRefining, setIsRefining] = useState(false)
     const [signalsVisible, setSignalsVisible] = useState(false)
     const [currentIndex, setCurrentIndex] = useState(0)
     const router = useRouter()
@@ -136,6 +137,7 @@ export default function MatchCardStack({
 
         params.set("refineReason", values.refineReason)
 
+        setIsRefining(true)
         setRefinementOpen(false)
         setOpen(false)
 
@@ -168,6 +170,17 @@ export default function MatchCardStack({
                 signalsVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
             }`}
         >
+            {isRefining && (
+                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-white/92 px-6">
+                    <div className="w-full max-w-md text-center space-y-6">
+                        <div className="text-sm text-stone-500">Updating your options…</div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200">
+                            <div className="h-full w-1/2 animate-pulse rounded-full bg-black" />
+                        </div>
+                        <div className="text-xs text-stone-400">We’re refining your matches based on what you told us.</div>
+                    </div>
+                </div>
+            )}
             <div className="mb-4 flex items-center justify-between">
                 <div className="text-sm text-stone-500">
                     Option {currentIndex + 1} of {matches.length}
@@ -181,7 +194,7 @@ export default function MatchCardStack({
                                 setOpen(false)
                                 setCurrentIndex((prev) => Math.max(0, prev - 1))
                             }}
-                            disabled={!canGoPrev}
+                            disabled={isRefining || !canGoPrev}
                             className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             Previous
@@ -193,7 +206,7 @@ export default function MatchCardStack({
                                 setOpen(false)
                                 setCurrentIndex((prev) => Math.min(matches.length - 1, prev + 1))
                             }}
-                            disabled={!canGoNext}
+                            disabled={isRefining || !canGoNext}
                             className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             Next
@@ -265,6 +278,7 @@ export default function MatchCardStack({
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
                                 <button
                                     onClick={() => {
+                                        if (isRefining) return
                                         setRefinementOpen(false)
                                         setOpen((prev) => !prev)
                                     }}
@@ -276,6 +290,7 @@ export default function MatchCardStack({
                                 <button
                                     type="button"
                                     onClick={() => {
+                                        if (isRefining) return
                                         setOpen(false)
                                         setRefinementOpen((prev) => !prev)
                                     }}
@@ -288,7 +303,8 @@ export default function MatchCardStack({
                             {showPrimaryAction && (
                                 <button
                                     onClick={handleChooseFacility}
-                                    className="rounded-[18px] bg-stone-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 sm:px-6"
+                                    disabled={isRefining}
+                                    className="rounded-[18px] bg-stone-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60 sm:px-6"
                                 >
                                     {current.presentation.primaryCtaLabel}
                                 </button>
