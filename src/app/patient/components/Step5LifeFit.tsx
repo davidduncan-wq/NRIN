@@ -34,7 +34,8 @@ const INSURANCE_TYPE_OPTIONS = [
     { value: "private", label: "Private insurance" },
     { value: "medicaid", label: "Medicaid / state plan" },
     { value: "medicare", label: "Medicare" },
-    { value: "va", label: "VA / Tricare" },
+    { value: "va", label: "VA" },
+                    { value: "tricare", label: "TRICARE" },
     { value: "not_sure", label: "Not sure" },
 ] as const;
 
@@ -586,7 +587,8 @@ function InsuranceTypeSection({
         { value: "private", label: "Private" },
         { value: "medicaid", label: "Medicaid / state plan" },
         { value: "medicare", label: "Medicare" },
-        { value: "va", label: "VA / Tricare" },
+        { value: "va", label: "VA" },
+                    { value: "tricare", label: "TRICARE" },
         { value: "not_sure", label: "Not sure" },
     ];
 
