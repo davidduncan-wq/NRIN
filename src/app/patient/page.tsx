@@ -481,6 +481,11 @@ export default function PatientIntakePage() {
             params.set("patientId", patientId);
             params.set("caseId", caseData.id);
 
+            if (form.insuranceType === "va") {
+                router.push(`/patient/va-route?${params.toString()}`);
+                return;
+            }
+
             setIsRoutingToMatches(true);
             router.push(`/patient/matches?${params.toString()}`);
         } catch (err) {
