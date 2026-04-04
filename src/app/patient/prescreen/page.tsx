@@ -22,7 +22,11 @@ export default async function PreScreenPage({
   const params = await searchParams;
 
   function getParam(value?: string | string[]) {
-    return typeof value === "string" ? value : Array.isArray(value) ? value[0] ?? "" : "";
+    return typeof value === "string"
+      ? value
+      : Array.isArray(value)
+        ? value[0] ?? ""
+        : "";
   }
 
   return (
