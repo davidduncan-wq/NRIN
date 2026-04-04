@@ -19,6 +19,48 @@ function getInitials(name: string) {
         .join("")
 }
 
+function StageRow({
+    label,
+    active,
+    done,
+}: {
+    label: string
+    active: boolean
+    done: boolean
+}) {
+    return (
+        <div
+            className={`flex items-center justify-between rounded-2xl border px-4 py-3 transition ${
+                done
+                    ? "border-stone-200 bg-stone-50"
+                    : active
+                      ? "border-stone-300 bg-white"
+                      : "border-stone-100 bg-white/70"
+            }`}
+        >
+            <span
+                className={`text-sm ${
+                    done || active ? "text-stone-800" : "text-stone-400"
+                }`}
+            >
+                {label}
+            </span>
+
+            <span
+                className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-sm transition ${
+                    done
+                        ? "bg-stone-900 text-white"
+                        : active
+                          ? "border border-stone-300 bg-white text-stone-500"
+                          : "border border-stone-200 bg-white text-stone-300"
+                }`}
+            >
+                {done ? "✓" : active ? "…" : ""}
+            </span>
+        </div>
+    )
+}
+
 export default function MatchCardStack({
     matches,
     showPrimaryAction = true,
@@ -31,6 +73,7 @@ export default function MatchCardStack({
     const [isRefining, setIsRefining] = useState(false)
     const [signalsVisible, setSignalsVisible] = useState(false)
     const [currentIndex, setCurrentIndex] = useState(0)
+    const [activeStageIndex, setActiveStageIndex] = useState(0)
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -64,6 +107,58 @@ export default function MatchCardStack({
         setIsRefining(false)
     }, [isRefining, searchParams, current?.id, matches.length])
 
+    useEffect(() => {
+        if (!isRefining) {
+            setActiveStageIndex(0)
+            return
+        }
+
+        setActiveStageIndex(0)
+
+        const timers = [
+            window.setTimeout(() => setActiveStageIndex(1), 500),
+            window.setTimeout(() => setActiveStageIndex(2), 1100),
+            window.setTimeout(() => setActiveStageIndex(3), 1700),
+        ]
+
+        return () => {
+            timers.forEach((timer) => window.clearTimeout(timer))
+        }
+    }, [isRefining])
+
+    const stageLabels = useMemo(() => {
+        const labels = ["Reviewing your clinical needs"]
+
+        const levels = (searchParams.get("refineLevels") ?? "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean)
+
+        if (levels.includes("detox") || searchParams.get("needsDetox") === "1") {
+            labels.push("Checking detox support")
+        } else if (levels.includes("residential")) {
+            labels.push("Checking residential fit")
+        } else {
+            labels.push("Confirming level of care fit")
+        }
+
+        if (searchParams.get("refineMAT") === "1") {
+            labels.push("Reviewing medication support")
+        } else if (searchParams.get("refineFamily") === "1") {
+            labels.push("Reviewing family-support options")
+        } else if (searchParams.get("insuranceStatus") === "yes") {
+            labels.push("Checking payment path")
+        } else if (searchParams.get("refineGeo") === "close") {
+            labels.push("Looking closer to home")
+        } else {
+            labels.push("Reviewing program and support signals")
+        }
+
+        labels.push("Preparing updated recommendations")
+
+        return labels.slice(0, 4)
+    }, [searchParams])
+
     if (!current) {
         return (
             <div className="mt-20 text-center text-stone-500">
@@ -81,6 +176,8 @@ export default function MatchCardStack({
     const visibleReasonPills = current.presentation.reasonPills ?? []
 
     function handleChooseFacility() {
+        if (isRefining) return
+
         const params = new URLSearchParams()
 
         const patientId = searchParams.get("patientId")
@@ -102,14 +199,12 @@ export default function MatchCardStack({
             params.set("recommendedProgramType", current.recommendedProgramType)
         }
 
-
         if (current.presentation.location) {
             params.set("facilityLocation", current.presentation.location)
         }
 
         router.push(`/patient/prescreen?${params.toString()}`)
     }
-
 
     function handleApplyRefinement(values: PatientRefinementValues) {
         const params = new URLSearchParams(searchParams.toString())
@@ -171,21 +266,41 @@ export default function MatchCardStack({
 
     return (
         <div
-            className={`px-4 sm:px-0 transition-all duration-700 ease-out ${
+            className={`relative px-4 sm:px-0 transition-all duration-700 ease-out ${
                 signalsVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
             }`}
         >
             {isRefining && (
-                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-white/92 px-6">
-                    <div className="w-full max-w-md text-center space-y-6">
-                        <div className="text-sm text-stone-500">Updating your options…</div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200">
-                            <div className="h-full w-1/2 animate-pulse rounded-full bg-black" />
+                <div className="absolute inset-0 z-[90] flex items-center justify-center rounded-[28px] bg-white">
+                    <div className="w-full max-w-xl px-6">
+                        <div className="mx-auto max-w-lg rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_10px_40px_rgba(28,25,23,0.08)] sm:p-8">
+                            <div className="space-y-2 text-center">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+                                    Updating recommendations
+                                </p>
+                                <h2 className="text-xl font-semibold tracking-[-0.02em] text-stone-900">
+                                    Looking for a better fit
+                                </h2>
+                                <p className="text-sm leading-6 text-stone-500">
+                                    We’re quietly reviewing the details you gave us and preparing a better set of options.
+                                </p>
+                            </div>
+
+                            <div className="mt-6 space-y-3">
+                                {stageLabels.map((label, index) => (
+                                    <StageRow
+                                        key={label}
+                                        label={label}
+                                        active={activeStageIndex === index}
+                                        done={activeStageIndex > index}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                        <div className="text-xs text-stone-400">We’re refining your matches based on what you told us.</div>
                     </div>
                 </div>
             )}
+
             <div className="mb-4 flex items-center justify-between">
                 <div className="text-sm text-stone-500">
                     Option {currentIndex + 1} of {matches.length}
@@ -246,8 +361,6 @@ export default function MatchCardStack({
 
                             {visibleReasonPills.length > 0 && (
                                 <div className="mt-8">
-                                    
-
                                     <div className="mt-4 flex flex-wrap gap-2.5">
                                         {visibleReasonPills.map((item, i) => (
                                             <SignalPill
