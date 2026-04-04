@@ -241,6 +241,7 @@ const initialFormState: FormState = {
 export default function PatientIntakePage() {
     const [step, setStep] = useState<Step>(1);
     const [loading, setLoading] = useState(false);
+    const [isRoutingToMatches, setIsRoutingToMatches] = useState(false);
     const [result, setResult] = useState<Recommendation | null>(null);
     const [form, setForm] = useState<FormState>(initialFormState);
 
@@ -479,6 +480,7 @@ export default function PatientIntakePage() {
             params.set("patientId", patientId);
             params.set("caseId", caseData.id);
 
+            setIsRoutingToMatches(true);
             router.push(`/patient/matches?${params.toString()}`);
         } catch (err) {
             console.error("Unexpected error submitting intake:", err);
@@ -506,6 +508,17 @@ export default function PatientIntakePage() {
 
     return (
         <div className="min-h-screen bg-slate-50">
+            {isRoutingToMatches && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/95 px-6">
+                    <div className="w-full max-w-md text-center space-y-6">
+                        <div className="text-sm text-stone-500">Finding the best options for you…</div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200">
+                            <div className="h-full w-1/2 animate-pulse rounded-full bg-black" />
+                        </div>
+                        <div className="text-xs text-stone-400">This can take a few moments on slower connections.</div>
+                    </div>
+                </div>
+            )}
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 md:flex-row">
                 {/* Progress rail (top on mobile, sidebar on desktop) */}
                 <aside className="order-1 md:order-none md:w-64 md:shrink-0">
@@ -799,10 +812,10 @@ export default function PatientIntakePage() {
                                             <button
                                                 type="button"
                                                 onClick={handleFinalSubmit}
-                                                disabled={loading}
+                                                disabled={loading || isRoutingToMatches}
                                                 className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
                                             >
-                                                {loading ? "Submitting..." : "Submit intake and see recommendation"}
+                                                {isRoutingToMatches ? "Finding options..." : loading ? "Submitting..." : "Submit intake and see recommendation"}
                                             </button>
                                         </div>
 
@@ -810,10 +823,10 @@ export default function PatientIntakePage() {
                                             <button
                                                 type="button"
                                                 onClick={handleFinalSubmit}
-                                                disabled={loading}
+                                                disabled={loading || isRoutingToMatches}
                                                 className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-black px-6 text-base font-semibold text-white shadow-sm transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
                                             >
-                                                {loading ? "Submitting..." : "Submit intake and see recommendation"}
+                                                {isRoutingToMatches ? "Finding options..." : loading ? "Submitting..." : "Submit intake and see recommendation"}
                                             </button>
                                         </StickyActionBar>
                                     </div>
