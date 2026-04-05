@@ -21,6 +21,27 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+function normalizeWebsite(value?: string | null) {
+  const raw = (value ?? "").trim().toLowerCase()
+  if (!raw) return ""
+  return raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")
+}
+
+function isLikelyVADomain(website?: string | null) {
+  const site = normalizeWebsite(website)
+  return site.includes("va.gov") || site.includes(".va.gov")
+}
+
+function isLikelyVAName(name?: string | null) {
+  const value = (name ?? "").toLowerCase()
+  return /\bveteran\b/.test(value) || /\bveterans\b/.test(value) || /\bva\b/.test(value)
+}
+
+function hasUsableWebsite(website?: string | null) {
+  const site = normalizeWebsite(website)
+  return site.length > 0 && !site.includes("404error")
+}
+
 export async function fetchVAFacilities(input: {
   latitude?: number
   longitude?: number
@@ -35,23 +56,21 @@ export async function fetchVAFacilities(input: {
     return []
   }
 
-  const vaLike = data.filter((f) => {
-    const site = (f.website || "").toLowerCase()
-    const name = (f.name || "").toLowerCase()
-
-    return (
-      site.includes(".gov") ||
-      site.includes(".mil") ||
-      name.includes("va") ||
-      name.includes("veterans")
-    )
+  const filtered = data.filter((f) => {
+    const byDomain = isLikelyVADomain(f.website)
+    const byName = isLikelyVAName(f.name)
+    return (byDomain || byName) && hasUsableWebsite(f.website)
   })
 
+  const deduped = Array.from(
+    new Map(filtered.map((f) => [f.id, f])).values()
+  )
+
   if (!input.latitude || !input.longitude) {
-    return vaLike.slice(0, 5)
+    return deduped.slice(0, 5)
   }
 
-  const withDistance = vaLike.map((f) => {
+  const withDistance = deduped.map((f) => {
     if (!f.latitude || !f.longitude) return { ...f, distance: 9999 }
 
     return {
