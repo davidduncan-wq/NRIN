@@ -21,25 +21,19 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-function normalizeWebsite(value?: string | null) {
-  const raw = (value ?? "").trim().toLowerCase()
-  if (!raw) return ""
-  return raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")
+type VAFacilitySite = {
+  id: string
+  name: string | null
+  city: string | null
+  state: string | null
+  latitude: number | null
+  longitude: number | null
+  website: string | null
 }
 
-function isLikelyVADomain(website?: string | null) {
-  const site = normalizeWebsite(website)
-  return site.includes("va.gov") || site.includes(".va.gov")
-}
-
-function isLikelyVAName(name?: string | null) {
-  const value = (name ?? "").toLowerCase()
-  return /\bveteran\b/.test(value) || /\bveterans\b/.test(value) || /\bva\b/.test(value)
-}
-
-function hasUsableWebsite(website?: string | null) {
-  const site = normalizeWebsite(website)
-  return site.length > 0 && !site.includes("404error")
+type ClassifiedVARow = {
+  facility_site_id: string
+  facility_sites: VAFacilitySite | VAFacilitySite[] | null
 }
 
 export async function fetchVAFacilities(input: {
@@ -47,23 +41,33 @@ export async function fetchVAFacilities(input: {
   longitude?: number
 }) {
   const { data, error } = await supabase
-    .from("facility_sites")
-    .select("id, name, city, state, latitude, longitude, website")
-    .not("website", "is", null)
+    .from("facility_classification")
+    .select(`
+      facility_site_id,
+      facility_sites:facility_site_id (
+        id,
+        name,
+        city,
+        state,
+        latitude,
+        longitude,
+        website
+      )
+    `)
+    .eq("network_route_class", "va")
 
   if (error || !data) {
     console.error("VA fetch error:", error)
     return []
   }
 
-  const filtered = data.filter((f) => {
-    const byDomain = isLikelyVADomain(f.website)
-    const byName = isLikelyVAName(f.name)
-    return (byDomain || byName) && hasUsableWebsite(f.website)
-  })
+  const mapped = (data as ClassifiedVARow[])
+    .map((row) => Array.isArray(row.facility_sites) ? row.facility_sites[0] ?? null : row.facility_sites ?? null)
+    .filter((row): row is VAFacilitySite => Boolean(row))
+    .filter((row) => row.id && row.name)
 
   const deduped = Array.from(
-    new Map(filtered.map((f) => [f.id, f])).values()
+    new Map(mapped.map((f) => [f.id, f])).values()
   )
 
   if (!input.latitude || !input.longitude) {
