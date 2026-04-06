@@ -1,3 +1,4 @@
+import { scoreEnvironment } from "./scoreEnvironment";
 import { applyHardFilters } from "./hardFilters"
 import { buildMatchExplanation } from "./buildMatchExplanation"
 import { scoreConfidence } from "./scoreConfidence"
@@ -31,7 +32,7 @@ export function matchPatientToFacilities(
                 ? programs.totalScore +
                   insurance.score +
                   specialties.totalScore +
-                  confidence.score
+                  scoreEnvironment(patient, facility)
                 : 0
 
             const explanation = buildMatchExplanation(

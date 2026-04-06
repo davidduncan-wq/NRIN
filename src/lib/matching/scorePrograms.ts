@@ -84,14 +84,13 @@ export function scorePrograms(
     capabilityScore += 2
   }
 
-  const confidenceBonus = Math.round((facility.evidenceConfidence ?? 0) / 20)
+  const confidenceBonus = 0
 
   const totalScore =
     levelMatchScore +
     detoxScore +
     dualDiagnosisScore +
-    capabilityScore +
-    confidenceBonus
+    capabilityScore
 
   return {
     hardFilter,

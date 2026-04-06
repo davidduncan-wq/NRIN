@@ -30,7 +30,7 @@ export function scoreConfidence(
   const normalized =
     sourceConfidence > 1 ? Math.min(sourceConfidence, 100) / 100 : sourceConfidence
 
-  let score = Math.round(normalized * 10)
+  let score = 0
 
   const captureMode = patient?.lifeFitProfile?.captureMode ?? ""
 
@@ -79,15 +79,6 @@ export function scoreConfidence(
     }
   }
 
-  if (preferredEnvironment === "west_coast") {
-    const facilityRegion = getRegionFromState(facility.state)
-
-    if (facilityRegion === "west_coast") {
-      score += 6
-    } else {
-      score -= 6
-    }
-  }
 
   return {
     sourceConfidence: normalized,
