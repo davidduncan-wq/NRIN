@@ -3,7 +3,7 @@ import type {
   PatientMatchingInput
 } from "./types"
 
-import { classifyGeoEnvironment } from "@/lib/geo/classifyGeoEnvironment"
+import { classifyGeoEnvironment } from "../geo/classifyGeoEnvironment"
 
 function hasTag(values: string[] | undefined, tag: string): boolean {
   return Array.isArray(values) && values.includes(tag)
