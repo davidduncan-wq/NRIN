@@ -15,6 +15,7 @@ export type MatchViewModel = {
     recommendedProgramType?: string | null
     reasons: MatchReasonViewModel[]
     cautions: string[]
+    pills: FacilityMatchResult["pills"]
     presentation: {
         title: string
         subtitle?: string
@@ -191,6 +192,7 @@ export function buildMatchViewModel(match: FacilityMatchResult): MatchViewModel 
         recommendedProgramType: (match as any).recommendedProgramType ?? null,
         reasons,
         cautions,
+        pills: match.pills ?? [],
         presentation: {
 
             title: match.facilityName,

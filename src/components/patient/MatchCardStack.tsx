@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import MatchDetailSheet from "@/components/patient/MatchDetailSheet"
+import PatientNeedPillRow from "@/components/patient/PatientNeedPillRow"
 import MatchTransitionSurface from "@/components/matching/MatchTransitionSurface"
 import PatientRefinementPanel, {
     type PatientRefinementValues,
 } from "@/components/patient/PatientRefinementPanel"
-import { SignalPill } from "@/components/ui/SignalPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { MatchViewModel } from "@/lib/matching/buildMatchViewModel"
 
@@ -112,7 +112,6 @@ export default function MatchCardStack({
         current.explanation.summary?.trim() ||
         ""
 
-    const visibleReasonPills = current.presentation.reasonPills ?? []
 
     function handleChooseFacility() {
         if (isRefining) return
@@ -148,12 +147,28 @@ export default function MatchCardStack({
     function handleApplyRefinement(values: PatientRefinementValues) {
         const params = new URLSearchParams(searchParams.toString())
 
-        params.set("refineGeo", values.refineGeo)
+        if (values.refineGeo === "inherit") {
+            params.delete("refineGeo")
+        } else {
+            params.set("refineGeo", values.refineGeo)
+        }
 
         if (values.refineLevels.length > 0) {
             params.set("refineLevels", values.refineLevels.join(","))
         } else {
             params.delete("refineLevels")
+        }
+
+        if (values.refineEnvironment.length > 0) {
+            params.set("refineEnvironment", values.refineEnvironment.join(","))
+        } else {
+            params.delete("refineEnvironment")
+        }
+
+        if (values.refineExperience.length > 0) {
+            params.set("refineExperience", values.refineExperience.join(","))
+        } else {
+            params.delete("refineExperience")
         }
 
         if (values.refineFamily) {
@@ -184,8 +199,21 @@ export default function MatchCardStack({
     }
 
     const refinementInitialValues: Partial<PatientRefinementValues> = {
-        refineGeo: searchParams.get("refineGeo") === "open" ? "open" : "close",
+        refineGeo:
+            searchParams.get("refineGeo") === "open"
+                ? "open"
+                : searchParams.get("refineGeo") === "close"
+                ? "close"
+                : "inherit",
         refineLevels: (searchParams.get("refineLevels") ?? "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean),
+        refineEnvironment: (searchParams.get("refineEnvironment") ?? "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean),
+        refineExperience: (searchParams.get("refineExperience") ?? "")
             .split(",")
             .map((value) => value.trim())
             .filter(Boolean),
@@ -193,8 +221,8 @@ export default function MatchCardStack({
         refineProfessional: searchParams.get("refineProfessional") === "1",
         refineMAT: searchParams.get("refineMAT") === "1",
         refineReason:
-            searchParams.get("refineReason") === "wrong_program" ||
-            searchParams.get("refineReason") === "doesnt_fit" ||
+            searchParams.get("refineReason") === "missing_support" ||
+            searchParams.get("refineReason") === "wrong_setting" ||
             searchParams.get("refineReason") === "other"
                 ? (searchParams.get("refineReason") as PatientRefinementValues["refineReason"])
                 : "too_far",
@@ -276,19 +304,9 @@ export default function MatchCardStack({
                                 </div>
                             )}
 
-                            {visibleReasonPills.length > 0 && (
+                            {current.pills && current.pills.length > 0 && (
                                 <div className="mt-8">
-                                    <div className="mt-4 flex flex-wrap gap-2.5">
-                                        {visibleReasonPills.map((item, i) => (
-                                            <SignalPill
-                                                key={`${current.id}-${i}`}
-                                                isVisible={signalsVisible}
-                                                delayMs={i * 120}
-                                            >
-                                                {item}
-                                            </SignalPill>
-                                        ))}
-                                    </div>
+                                    <PatientNeedPillRow pills={current.pills} reveal={signalsVisible} />
                                 </div>
                             )}
                         </div>

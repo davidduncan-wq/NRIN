@@ -1,6 +1,9 @@
 import { scoreEnvironment } from "./scoreEnvironment";
+import { scoreExperience } from "./scoreExperience"
+import { scoreGeo } from "./scoreGeo"
 import { applyHardFilters } from "./hardFilters"
 import { buildMatchExplanation } from "./buildMatchExplanation"
+import { buildPills } from "./buildPills"
 import { scoreConfidence } from "./scoreConfidence"
 import { scoreInsurance } from "./scoreInsurance"
 import { scorePrograms } from "./scorePrograms"
@@ -27,12 +30,17 @@ export function matchPatientToFacilities(
             const insurance = scoreInsurance(patient, facility)
             const specialties = scoreSpecialties(patient, facility)
             const confidence = scoreConfidence(patient, facility)
+            const geo = scoreGeo(patient, facility)
+            const environment = scoreEnvironment(patient, facility)
+            const experience = scoreExperience(patient, facility)
 
             const totalScore = hardFilter.passed
                 ? programs.totalScore +
                   insurance.score +
                   specialties.totalScore +
-                  scoreEnvironment(patient, facility)
+                  geo +
+                  environment +
+                  experience
                 : 0
 
             const explanation = buildMatchExplanation(
@@ -42,6 +50,7 @@ export function matchPatientToFacilities(
                 insurance,
                 specialties,
             )
+            const pills = buildPills(patient, facility)
 
             return {
                 facilityId: facility.facilityId,
@@ -60,6 +69,7 @@ export function matchPatientToFacilities(
                     confidence,
                 },
                 explanation,
+                pills,
                 recommendedProgramType: patient.desiredLevelsOfCare[0] ?? null,
             }
         })

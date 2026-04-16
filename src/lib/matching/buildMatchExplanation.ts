@@ -7,6 +7,7 @@ import type {
     ProgramScoreBreakdown,
     SpecialtyScoreBreakdown,
 } from "./types"
+import { classifyGeoEnvironment } from "@/lib/geo/classifyGeoEnvironment"
 
 function formatLevelOfCare(level: string) {
     switch (level) {
@@ -44,6 +45,86 @@ function getProgramEvidence(
     )
 
     return match?.evidence?.[0]
+}
+
+function normalizePreferredEnvironment(value?: string | null): string | null {
+    if (!value) return null
+    return value.trim().toLowerCase()
+}
+
+function formatPreferredEnvironment(value: string): string {
+    switch (value) {
+        case "west_coast":
+            return "West Coast"
+        case "east_coast":
+            return "East Coast"
+        case "midwest":
+            return "Midwest"
+        case "south":
+            return "South"
+        case "desert":
+            return "Desert setting"
+        case "mountains":
+            return "Mountain setting"
+        case "coastal":
+            return "Coastal setting"
+        case "island":
+            return "Island setting"
+        case "urban_city":
+            return "Urban setting"
+        case "rural_quiet":
+            return "Quiet setting"
+        case "home_like":
+            return "Home-like setting"
+        case "luxury":
+            return "Luxury setting"
+        case "nature":
+            return "Nature setting"
+        default:
+            return value.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())
+    }
+}
+
+function environmentMatches(
+    preferred: string,
+    facility: FacilityMatchingInput,
+): boolean {
+    const geo = classifyGeoEnvironment({
+        lat: facility.latitude ?? null,
+        lng: facility.longitude ?? null,
+        state: facility.state ?? null,
+        city: facility.city ?? null,
+    })
+
+    const identityEnvironment = facility.identityEnvironment ?? []
+    const identityRegion = facility.identityRegion ?? []
+
+    switch (preferred) {
+        case "west_coast":
+            return identityRegion.includes("WEST_COAST") || geo.region === "west_coast"
+        case "east_coast":
+            return identityRegion.includes("EAST_COAST") || geo.region === "east_coast"
+        case "desert":
+            return identityEnvironment.includes("DESERT") || geo.environment === "desert"
+        case "mountains":
+            return identityEnvironment.includes("MOUNTAIN") || geo.environment === "mountain"
+        case "coastal":
+            return identityEnvironment.includes("COASTAL") || geo.environment === "coastal"
+        case "island":
+            return identityEnvironment.includes("ISLAND") || geo.environment === "island"
+        case "urban_city":
+            return geo.environment === "urban_city"
+        case "rural_quiet":
+            return geo.environment === "rural_quiet"
+        case "home_like":
+            return identityEnvironment.includes("HOME_LIKE")
+        case "luxury":
+            return identityEnvironment.includes("LUXURY")
+        case "nature":
+            return identityEnvironment.includes("NATURE")
+        default:
+            return false
+    }
 }
 
 export function buildMatchExplanation(
@@ -165,13 +246,23 @@ export function buildMatchExplanation(
         })
     }
 
-    if (lifeFit?.preferences?.preferredEnvironment) {
-        reasons.push({
-            label: `Fits your preferred environment`,
-            snippet: `You indicated a preference for ${lifeFit.preferences.preferredEnvironment.replace("_", " ")}`,
-            sourceUrl: "#life-fit",
-            sourceLabel: "Life fit",
-        })
+    const preferredEnvironment = normalizePreferredEnvironment(
+        lifeFit?.preferences?.preferredEnvironment,
+    )
+
+    if (preferredEnvironment) {
+        const environmentLabel = formatPreferredEnvironment(preferredEnvironment)
+
+        if (environmentMatches(preferredEnvironment, facility)) {
+            reasons.push({
+                label: environmentLabel,
+                snippet: `${environmentLabel} matches what you’re looking for.`,
+                sourceUrl: "#life-fit",
+                sourceLabel: "Life fit",
+            })
+        } else {
+            cautions.push(`Not a ${environmentLabel.toLowerCase()}`)
+        }
     }
 
     if (wantsFamilyProgram && facility.hasFamilyProgramSignal) {
@@ -186,17 +277,31 @@ export function buildMatchExplanation(
         })
     }
 
-    if (patient.prefersDualDiagnosis && !facility.hasDualDiagnosisSignal) {
-        cautions.push("Dual-diagnosis support should be confirmed.")
+    // === NEGATIVE FIT SIGNALS (NRIN DOCTRINE) ===
+
+    if (patient.needsDetox && !facility.detectedLevelsOfCare.includes("detox")) {
+        cautions.push("Detox not available")
     }
 
     if (patient.requiresMAT && !facility.hasMATSignal) {
-        cautions.push("Medication-assisted treatment availability should be confirmed.")
+        cautions.push("Medication-assisted treatment (MAT) not available")
+    }
+
+    if (patient.prefersDualDiagnosis && !facility.hasDualDiagnosisSignal) {
+        cautions.push("Dual-diagnosis support not available")
+    }
+
+    if (wantsFamilyProgram && !facility.hasFamilyProgramSignal) {
+        cautions.push("Family support program not available")
+    }
+
+    if (wantsProfessionalProgram && !facility.hasProfessionalProgramSignal) {
+        cautions.push("Professional program not available")
     }
 
     if (patient.insuranceCarrier && !insurance.insuranceMatch) {
         cautions.push(
-            `Insurance acceptance for ${formatInsuranceCarrier(patient.insuranceCarrier)} should be confirmed.`,
+            `Does not confirm acceptance of ${formatInsuranceCarrier(patient.insuranceCarrier)}`,
         )
     }
 

@@ -1,3 +1,5 @@
+import type { MatchPill } from "./buildPills"
+
 export type LevelOfCare =
   | "detox"
   | "residential"
@@ -64,6 +66,7 @@ export type PatientMatchingInput = {
   closeToHomeRequested?: boolean
   wantsProfessionalProgram?: boolean
   wantsFamilyProgram?: boolean
+  preferredExperienceTags?: string[]
   lifeFitProfile?: LifeFitProfile
 }
 
@@ -86,9 +89,16 @@ export type FacilityMatchingInput = {
 
   acceptedInsurance: InsuranceCarrier[]
   acceptsPrivateInsurance?: boolean
+  supportsTricarePath?: boolean
   evidenceConfidence?: number
   rawProgramEvidence?: any[]
   rawInsuranceEvidence?: any[]
+
+  identityEnvironment?: string[]
+  identityAtmosphere?: string[]
+  identityActivities?: string[]
+  identitySpecialTracks?: string[]
+  identityRegion?: string[]
 }
 
 export type HardFilterResult = {
@@ -158,7 +168,8 @@ export type FacilityMatchResult = {
   }
 
   explanation: MatchExplanation
-    recommendedProgramType: string | null
+  pills: MatchPill[]
+  recommendedProgramType: string | null
 }
 
 export type MatchFacilitiesResult = {

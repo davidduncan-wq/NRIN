@@ -213,6 +213,15 @@ export function buildPatientFromSearchParams(
       ? searchParams.refineGeo
       : undefined
 
+  const refineExperience =
+    typeof searchParams.refineExperience === "string" &&
+    searchParams.refineExperience.trim() !== ""
+      ? searchParams.refineExperience
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : []
+
   const environmentPreference =
     typeof searchParams.environmentPreference === "string" &&
     searchParams.environmentPreference.trim() !== ""
@@ -266,6 +275,7 @@ export function buildPatientFromSearchParams(
       searchParams.refineFamily,
       parseBoolean(searchParams.wantsFamilyProgram, false),
     ),
+    preferredExperienceTags: refineExperience,
     city: closeToHome ? city : undefined,
     state: closeToHome ? state : undefined,
     latitude: closeToHome ? latitude : undefined,
