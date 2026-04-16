@@ -33,6 +33,18 @@ export default async function PatientMatchesPage({
             ? resolvedSearchParams.caseId
             : null
 
+    let caseCode: string | null = null
+
+    if (caseId) {
+        const { data: caseRow } = await supabase
+            .from("cases")
+            .select("case_code")
+            .eq("id", caseId)
+            .single()
+
+        caseCode = caseRow?.case_code ?? null
+    }
+
     const previousExposureIds = new Set<string>()
 
     if (patientId || caseId) {
@@ -165,6 +177,12 @@ export default async function PatientMatchesPage({
                         <p className="text-sm text-stone-500">
                             Based on what you shared
                         </p>
+
+                        {caseCode && (
+                            <p className="mt-1 text-xs text-stone-400">
+                                Case code: {caseCode}
+                            </p>
+                        )}
 
                         <h1 className="mt-1 text-lg font-semibold text-stone-950 sm:text-xl">
                             Our recommendation

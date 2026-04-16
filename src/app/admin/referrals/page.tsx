@@ -158,7 +158,7 @@ export default function AdminReferralsPage() {
             if (facilitySiteIds.length > 0) {
                 const { data: facilityData, error: facilityError } = await supabase
                     .from("facility_sites")
-                    .select("id, name, city, state")
+                    .select("id, name, city, state, facility_code")
                     .in("id", facilitySiteIds);
 
                 if (facilityError) {
@@ -181,6 +181,7 @@ export default function AdminReferralsPage() {
                     patient_name: formatPatientName(patient, row.patient_id),
                     facility_name: facility?.name?.trim() || "Unknown facility",
                     facility_location: formatFacilityLocation(facility),
+                    facility_code: (facility as any)?.facility_code ?? null,
                 };
             });
 
@@ -288,7 +289,7 @@ export default function AdminReferralsPage() {
                                                 {row.facility_name}
                                             </div>
                                             <div className="truncate text-xs text-slate-500">
-                                                {row.facility_location} · site_id: {row.facility_site_id ?? "—"}
+                                                {row.facility_location} · code: {row.facility_code ?? "—"}
                                             </div>
                                         </div>
 

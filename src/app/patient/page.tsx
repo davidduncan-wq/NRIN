@@ -3,7 +3,7 @@
 
 import { Step5Review } from "./components/Step5Review";
 import { Step5LifeFit } from "./components/Step5LifeFit";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Step3Housing } from "./components/Step3Housing";
 import { Input } from "@/components/ui/Input";
 import FieldCheck from "@/components/ui/FieldCheck";
@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Step1Demographics } from "./components/Step1Demographics";
 import { Step2Contact } from "./components/Step2Contact";
 import { Step4Substances } from "./components/Step4Substances";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { buildPatientMatchingInput, deriveDesiredLevelsOfCare } from "@/lib/matching/buildPatientProfile";
 import MatchTransitionSurface from "@/components/matching/MatchTransitionSurface";
 
@@ -72,6 +72,17 @@ function dobToISO(dob: string): string | null {
 
     // Basic validation only; not checking month/day combo (e.g., Feb 30).
     return `${yyyy}-${mm}-${dd}`;
+}
+
+function generateCaseCode(length = 6): string {
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let result = "";
+
+    for (let i = 0; i < length; i++) {
+        result += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    }
+
+    return result;
 }
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -243,10 +254,41 @@ export default function PatientIntakePage() {
     const [step, setStep] = useState<Step>(1);
     const [loading, setLoading] = useState(false);
     const [isRoutingToMatches, setIsRoutingToMatches] = useState(false);
+    const [isRoutingToVA, setIsRoutingToVA] = useState(false);
     const [result, setResult] = useState<Recommendation | null>(null);
     const [form, setForm] = useState<FormState>(initialFormState);
 
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const savedDraft = window.sessionStorage.getItem("nrinPatientIntakeDraft");
+        if (savedDraft) {
+            try {
+                const parsed = JSON.parse(savedDraft);
+                setForm((prev) => ({ ...prev, ...parsed }));
+            } catch (error) {
+                console.error("Failed to restore intake draft:", error);
+            }
+        }
+
+        if (searchParams.get("returnStep") === "5") {
+            setStep(5);
+            setForm((prev) => ({
+                ...prev,
+                insuranceType: "",
+                selfPayIntent: "",
+            }));
+        }
+    }, [searchParams]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        window.sessionStorage.setItem("nrinPatientIntakeDraft", JSON.stringify(form));
+    }, [form]);
+
 
 
     const ageYears = computeAgeYears(form.dobISO);
@@ -406,16 +448,37 @@ export default function PatientIntakePage() {
 
             const patientId: string = patientData.id;
 
-            const { data: caseData, error: caseError } = await supabase
-                .from("cases")
-                .insert([
-                    {
-                        patient_id: patientId,
-                        state: "NEW_INTAKE",
-                    },
-                ])
-                .select("id")
-                .single();
+            let caseData: { id: string; case_code: string | null } | null = null;
+            let caseError: { message?: string; code?: string } | null = null;
+
+            for (let attempt = 0; attempt < 5; attempt++) {
+                const caseCode = generateCaseCode();
+
+                const result = await supabase
+                    .from("cases")
+                    .insert([
+                        {
+                            patient_id: patientId,
+                            state: "NEW_INTAKE",
+                            case_code: caseCode,
+                        },
+                    ])
+                    .select("id, case_code")
+                    .single();
+
+                if (!result.error && result.data) {
+                    caseData = result.data;
+                    caseError = null;
+                    break;
+                }
+
+                if (result.error?.code !== "23505") {
+                    caseError = result.error;
+                    break;
+                }
+
+                caseError = result.error;
+            }
 
             if (caseError || !caseData) {
                 console.error("Error inserting case:", caseError);
@@ -482,6 +545,7 @@ export default function PatientIntakePage() {
             params.set("caseId", caseData.id);
 
             if (form.insuranceType === "va") {
+                setIsRoutingToVA(true);
                 router.push(`/patient/va-route?${params.toString()}`);
                 return;
             }
@@ -535,6 +599,22 @@ export default function PatientIntakePage() {
                 lines={routingLines}
                 variant="fullscreen"
             />
+            {isRoutingToVA && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white px-6">
+                    <div className="mx-auto max-w-xl text-center">
+                        <p className="text-sm font-medium text-stone-500">VA care path</p>
+                        <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-stone-900 sm:text-4xl">
+                            Preparing your next step through the VA system
+                        </h2>
+                        <p className="mt-4 text-base leading-7 text-stone-600">
+                            Care for veterans typically begins through the VA system. We’re guiding you to the right place to start.
+                        </p>
+                        <div className="mt-8 flex items-center justify-center">
+                            <div className="h-2 w-2 animate-pulse rounded-full bg-[#005ea2]" />
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 md:flex-row">
                 {/* Progress rail (top on mobile, sidebar on desktop) */}
                 <aside className="order-1 md:order-none md:w-64 md:shrink-0">
