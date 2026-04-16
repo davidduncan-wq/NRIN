@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Step1Demographics } from "./components/Step1Demographics";
 import { Step2Contact } from "./components/Step2Contact";
 import { Step4Substances } from "./components/Step4Substances";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { buildPatientMatchingInput, deriveDesiredLevelsOfCare } from "@/lib/matching/buildPatientProfile";
 import MatchTransitionSurface from "@/components/matching/MatchTransitionSurface";
 
@@ -259,7 +259,6 @@ export default function PatientIntakePage() {
     const [form, setForm] = useState<FormState>(initialFormState);
 
     const router = useRouter();
-    const searchParams = useSearchParams();
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -274,7 +273,9 @@ export default function PatientIntakePage() {
             }
         }
 
-        if (searchParams.get("returnStep") === "5") {
+        const returnStep = new URLSearchParams(window.location.search).get("returnStep");
+
+        if (returnStep === "5") {
             setStep(5);
             setForm((prev) => ({
                 ...prev,
@@ -282,7 +283,7 @@ export default function PatientIntakePage() {
                 selfPayIntent: "",
             }));
         }
-    }, [searchParams]);
+    }, []);
 
     useEffect(() => {
         if (typeof window === "undefined") return;

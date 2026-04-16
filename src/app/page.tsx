@@ -73,14 +73,14 @@ export default function Home() {
 
         <section className="mx-auto mt-10 grid w-full max-w-5xl gap-4 md:grid-cols-2 xl:grid-cols-3">
           <RoleCard
-            href="/patient"
+            href="/patient/entry"
             title="I am a patient"
             description="Start a self-referral and answer a few questions so we can help guide you toward the right level of care."
             variant="primary"
           />
 
           <RoleCard
-            href="/patient"
+            href="/patient/entry"
             title="I am a family member or friend"
             description="Help someone begin the intake process and explore appropriate treatment options."
           />

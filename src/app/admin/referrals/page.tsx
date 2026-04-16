@@ -27,12 +27,14 @@ type FacilitySiteRow = {
     name: string | null;
     city: string | null;
     state: string | null;
+    facility_code: string | null;
 };
 
 type AdminReferralRow = ReferralBaseRow & {
     patient_name: string;
     facility_name: string;
     facility_location: string;
+    facility_code: string | null;
 };
 
 function normalizeStatus(raw: string | null | undefined) {
