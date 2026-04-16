@@ -1,5 +1,5 @@
 import type { FacilityMatchingInput, PatientMatchingInput } from "./types"
-import { classifyGeoEnvironment } from "@/lib/geo/classifyGeoEnvironment"
+import { classifyGeoEnvironment } from "../geo/classifyGeoEnvironment"
 
 export type MatchPillStatus = "met" | "missing"
 

@@ -7,7 +7,7 @@ import type {
     ProgramScoreBreakdown,
     SpecialtyScoreBreakdown,
 } from "./types"
-import { classifyGeoEnvironment } from "@/lib/geo/classifyGeoEnvironment"
+import { classifyGeoEnvironment } from "../geo/classifyGeoEnvironment"
 
 function formatLevelOfCare(level: string) {
     switch (level) {
