@@ -263,26 +263,59 @@ export default function PatientIntakePage() {
     useEffect(() => {
         if (typeof window === "undefined") return;
 
-        const savedDraft = window.sessionStorage.getItem("nrinPatientIntakeDraft");
-        if (savedDraft) {
-            try {
-                const parsed = JSON.parse(savedDraft);
-                setForm((prev) => ({ ...prev, ...parsed }));
-            } catch (error) {
-                console.error("Failed to restore intake draft:", error);
+        async function restoreIntake() {
+            const search = new URLSearchParams(window.location.search);
+            const caseId = search.get("caseId");
+            const returnStep = search.get("returnStep");
+            const resetPayment = search.get("resetPayment") === "1";
+
+            if (caseId) {
+                try {
+                    const res = await fetch(`/api/patient/resume?caseId=${caseId}`);
+                    const data = await res.json();
+
+                    if (data.ok && data.form) {
+                        // CRITICAL: overwrite fully, do not merge with stale state.
+                        // Preserve payment/insurance data by default; only clear it for explicit VA escape/reset flows.
+                        setForm({
+                            ...initialFormState,
+                            ...data.form,
+                            ...(resetPayment
+                                ? {
+                                    insuranceStatus: "",
+                                    insuranceType: "",
+                                    insuranceCarrier: "",
+                                    insuranceDetailsTiming: undefined,
+                                    insuranceInputMethod: undefined,
+                                    selfPayIntent: "",
+                                    possibleFundingSignals: [],
+                                    militaryStatus: undefined,
+                                    militaryCoverage: undefined,
+                                }
+                                : {}),
+                        });
+                    }
+                } catch (error) {
+                    console.error("Failed to resume intake:", error);
+                }
+            } else {
+                const savedDraft = window.sessionStorage.getItem("nrinPatientIntakeDraft");
+                if (savedDraft) {
+                    try {
+                        const parsed = JSON.parse(savedDraft);
+                        setForm((prev) => ({ ...prev, ...parsed }));
+                    } catch (error) {
+                        console.error("Failed to restore intake draft:", error);
+                    }
+                }
+            }
+
+            if (returnStep === "5") {
+                setStep(5);
             }
         }
 
-        const returnStep = new URLSearchParams(window.location.search).get("returnStep");
-
-        if (returnStep === "5") {
-            setStep(5);
-            setForm((prev) => ({
-                ...prev,
-                insuranceType: "",
-                selfPayIntent: "",
-            }));
-        }
+        void restoreIntake();
     }, []);
 
     useEffect(() => {
@@ -429,6 +462,7 @@ export default function PatientIntakePage() {
                 location_environment_notes: form.locationEnvironmentNotes || null,
                 treatment_goals_notes: form.treatmentGoalsNotes || null,
                 additional_context_notes: form.additionalContextNotes || null,
+                intake_payload: form,
             };
 
             const {
